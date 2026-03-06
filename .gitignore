@@ -21,6 +21,10 @@ utilities/config.py
 workspace.xml
 .idea/
 
+# ignore python cache
+__pycache__/
+*.pyc
+
 # ignore backend and frontend directory
 backend_and_frontend/
 
