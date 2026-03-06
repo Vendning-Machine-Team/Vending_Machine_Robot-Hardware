@@ -28,6 +28,6 @@ __pycache__/
 # ignore backend and frontend directory
 backend_and_frontend/
 
-robot_dog.log
-robot_dog.log.bak
-robot_dog.service.d
+vending_machine.log
+vending_machine.log.bak
+vending_machine.service.d

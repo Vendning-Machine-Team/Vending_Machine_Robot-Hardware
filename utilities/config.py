@@ -43,7 +43,7 @@ DEFAULT_INTENSITY = 10 # default intensity for keyboard commands (1 to 10)
 ##### set logging configuration #####
 
 LOG_CONFIG = {
-    'LOG_PATH': "/home/matthewthomasbeck/Projects/Robot_Dog/robot_dog.log", # path to log file DO NOT CHANGE
+    'LOG_PATH': "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/vending_machine.log", # path to log file DO NOT CHANGE
     'LOG_LEVEL': logging.INFO # set log level to logging.<DEBUG, INFO, WARNING, ERROR, or CRITICAL>
 }
 
@@ -51,7 +51,7 @@ LOG_CONFIG = {
 
 ##### set camera configuration #####
 
-CAMERA_CONFIG = { # TODO BE VERY CAREFUL WITH OUTPUT WIDTHxHEIGHT! Remember, the height gets cut in half via 0.5 crop!
+CAMERA_CONFIG = {
     'FOV': 75, # degrees
     'CAMERA_WIDTH': 4608,
     'CAMERA_HEIGHT': 2592,
@@ -75,9 +75,7 @@ CAMERA_CONFIG = { # TODO BE VERY CAREFUL WITH OUTPUT WIDTHxHEIGHT! Remember, the
 
 INFERENCE_CONFIG = {
     'TPU_NAME': "MYRIAD",  # literal device name in code
-    'STANDARD_RL_PATH': "/home/matthewthomasbeck/Projects/Robot_Dog/model/standard", # standard all terrain RL model
-    'BLIND_RL_PATH': "/home/matthewthomasbeck/Projects/Robot_Dog/model/blind_rl_model.xml", # speedy imageless RL model
-    'CNN_PATH': "/home/matthewthomasbeck/Projects/Robot_Dog/model/person-detection-0200.xml",  # person detection
+    'CNN_PATH': "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/model/ssdlite_mobilenet_v2.xml",  # object detection
 }
 
 
@@ -117,8 +115,8 @@ MAESTRO_CONFIG = {
 ##### set internet connectivity configuration #####
 
 INTERNET_CONFIG = {
-    'BACKEND_API_URL': "https://api.matthewthomasbeck.com", # URL of the backend API endpoint
-    'BACKEND_PUBLIC_IP': "72.177.232.19", # public IP address of backend
+    'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
+    'BACKEND_PUBLIC_IP': "0.0.0.0", # public IP address of backend
     'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
     'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
 }
@@ -145,30 +143,4 @@ SERVO_CONFIG = { # dictionary of leg configurations
     'BR': {'hip': {'servo': 11, 'FULL_FRONT': 1848.25, 'FULL_BACK': 1261.00, 'NEUTRAL': 1554.625, 'CURRENT': 1554.625, 'FULL_FRONT_ANGLE': 0.958934, 'FULL_BACK_ANGLE': -0.349066, 'CURRENT_ANGLE': 0.0, 'NEUTRAL_ANGLE': 0.0},
            'upper': {'servo': 10, 'FULL_FRONT': 1701.50, 'FULL_BACK': 1065.25, 'NEUTRAL': 1283.375, 'CURRENT': 1283.375, 'FULL_FRONT_ANGLE': 0.654, 'FULL_BACK_ANGLE': -0.654, 'CURRENT_ANGLE': 0.0, 'NEUTRAL_ANGLE': 0.0},
            'lower': {'servo': 9, 'FULL_FRONT': 2000.00, 'FULL_BACK': 1221.75, 'NEUTRAL': 1610.875, 'CURRENT': 1610.875, 'FULL_FRONT_ANGLE': 0.698, 'FULL_BACK_ANGLE': -0.698, 'CURRENT_ANGLE': 0.0, 'NEUTRAL_ANGLE': 0.0}},
-}
-
-##### previous positions #####
-
-PREVIOUS_POSITIONS = [] # array of previous positions for each robot
-
-##### previous orientations #####
-
-PREVIOUS_ORIENTATIONS = [] # array of previous orientations for each robot (shift, move, translate, yaw, roll, pitch)
-
-##### set accelerometer configuration #####
-
-ACCELEROMETER_CONFIG = { # dictionary of accelerometer configuration
-
-    'MPU_6050_ADDRESS': 0x68, # address of the accelerometer
-    'PWR_MGMT_1': 0x6B, # power management register
-    'SMPLRT_DIV': 0x19, # sample rate divider
-    'CONFIG_REGISTER': 0x1A, # configuration register
-    'GYRO_CONFIG': 0x1B, # gyro configuration register
-    'INT_ENABLE': 0x38, # interrupt enable register
-    'ACCEL_XOUT_H': 0x3B, # accelerometer x-axis output high register
-    'ACCEL_YOUT_H': 0x3D, # accelerometer y-axis output high register
-    'ACCEL_ZOUT_H': 0x3F, # accelerometer z-axis output high register
-    'GYRO_XOUT_H': 0x43, # gyroscope x-axis output high register
-    'GYRO_YOUT_H': 0x45, # gyroscope y-axis output high register
-    'GYRO_ZOUT_H': 0x47 # gyroscope z-axis output high register
 }
