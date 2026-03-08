@@ -55,7 +55,6 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     from utilities.camera import initialize_camera  # import to start camera logic
     import utilities.internet as internet  # dynamically import internet utilities to be constantly updated
-    from utilities.accelerometer import initialize_accelerometer  # import accelerometer initialization functions
 
     ##### initialize global variables #####
 
@@ -69,10 +68,6 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
         robot_history.append(np.zeros(12, dtype=np.float32))
     config.PREVIOUS_POSITIONS.append(robot_history)
     logging.debug("PREVIOUS_POSITIONS initialized for physical robot with zeros")
-
-    ##### initialize accelerometer #####
-
-    initialize_accelerometer()
 
     ##### initialize camera process #####
 
