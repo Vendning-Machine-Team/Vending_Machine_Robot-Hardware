@@ -335,7 +335,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
 
     if frame is None:
         logging.warning("(opencv.py): Frame is None.\n")
-        return
+        return False
 
     try:
         if not run_inference:
@@ -343,7 +343,9 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             logging.debug("(opencv.py): Not running inference, passing...\n")
             #cv2.imshow("video (standard)", frame)
             #cv2.waitKey(1)
-            return
+            return False
+
+        person_detected = False
 
         if compiled_model is not None and input_layer is not None and output_layer is not None:
 
@@ -356,6 +358,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             for detection in results[0][0]:
                 confidence = detection[2]
                 if confidence > 0.5:
+                    person_detected = True
                     xmin, ymin, xmax, ymax = map(
                         int, detection[3:7] * [
                             frame.shape[1], frame.shape[0],
@@ -377,9 +380,12 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             logging.info("(opencv.py): Inference complete.\n")
             #cv2.imshow("video (inference)", frame)
             #cv2.waitKey(1)
-            
+
         else:
             logging.warning("(opencv.py): Inference requested but model is not loaded.\n")
 
+        return person_detected
+
     except Exception as e:
         logging.error(f"(opencv.py): Inference error: {e}\n")
+        return False

@@ -34,6 +34,37 @@ from utilities.config import MOTOR_CONFIG
 PI = None
 
 
+##### motor name index (built from MOTOR_CONFIG['*']['MOTORS']) #####
+
+MOTOR_NAME_INDEX = {}
+
+
+def _build_motor_name_index():
+    """
+    Build a lookup from logical motor name (FL, FR, BL, BR) to
+    (controller_key, channel, orientation).
+    """
+    index = {}
+    for controller_key, cfg in MOTOR_CONFIG.items():
+        motors = cfg.get('MOTORS', {})
+        for name, m_cfg in motors.items():
+            key = str(name).upper()
+            if key in index:
+                logging.warning(
+                    f"(motors.py): Duplicate motor name '{key}' in MOTOR_CONFIG; "
+                    f"overwriting previous mapping.\n"
+                )
+            index[key] = {
+                'controller_key': controller_key,
+                'channel': str(m_cfg.get('CHANNEL', 'A')).upper(),
+                'orientation': 1 if m_cfg.get('ORIENTATION', 1) >= 0 else -1,
+            }
+    return index
+
+
+MOTOR_NAME_INDEX = _build_motor_name_index()
+
+
 
 
 
@@ -44,7 +75,7 @@ PI = None
 
 ########## INITIALIZE MOTOR CONTROLLER ##########
 
-def initialize_motors():
+def initialize_motor_controllers():
     """
     Initialize pigpio and all DCMC pins from MOTOR_CONFIG.
     Sets each IN pin as OUTPUT, PWM frequency, and duty 0 (stop).
@@ -91,7 +122,7 @@ def intensity_to_speed(intensity):
     """
     if intensity is None or intensity <= 0:
         return 0.0
-    return max(0.0, min(1.0, intensity / 10.0))
+    return max(0.0, min(1.0, float(intensity) / 10.0))
 
 
 ########## SET MOTOR ##########
@@ -141,6 +172,82 @@ def set_motor(controller_key, channel, direction, speed=0.0):
         logging.debug(f"(motors.py): {controller_key} channel {channel} -> {direction} duty {duty}\n")
     except Exception as e:
         logging.error(f"(motors.py): set_motor failed: {e}\n")
+
+
+########## MOVE MOTOR BY NAME ##########
+
+def move_motor(motor_name, direction, intensity):
+    """
+    High-level helper to move a specific wheel motor by name.
+
+    motor_name: 'FL', 'FR', 'BL', 'BR'
+    direction: 'clockwise' | 'counterclockwise' | 'cw' | 'ccw' | 'stop'
+    intensity: integer 1-10 (mapped to 10%–100% duty); 0 or None = stop
+    """
+    if PI is None or not PI.connected:
+        logging.warning("(motors.py): move_motor called but motors not initialized.\n")
+        return
+
+    if motor_name is None:
+        logging.error("(motors.py): move_motor requires a motor_name.\n")
+        return
+
+    name_key = str(motor_name).upper()
+    motor_cfg = MOTOR_NAME_INDEX.get(name_key)
+    if motor_cfg is None:
+        logging.error(f"(motors.py): Unknown motor_name '{motor_name}'. Expected one of {list(MOTOR_NAME_INDEX.keys())}\n")
+        return
+
+    ##### normalize direction #####
+
+    if not direction:
+        logging.error("(motors.py): move_motor requires a direction.\n")
+        return
+
+    d = str(direction).lower()
+    if d in ('cw', 'clockwise'):
+        logical_dir = 'clockwise'
+    elif d in ('ccw', 'counterclockwise', 'counter-clockwise'):
+        logical_dir = 'counterclockwise'
+    elif d == 'stop':
+        logical_dir = 'stop'
+    else:
+        logging.error(f"(motors.py): Invalid direction '{direction}'. Use 'clockwise', 'counterclockwise', or 'stop'.\n")
+        return
+
+    ##### normalize intensity #####
+
+    try:
+        intensity_val = int(intensity) if intensity is not None else 0
+    except (TypeError, ValueError):
+        logging.error(f"(motors.py): Invalid intensity '{intensity}'. Expected 0-10.\n")
+        return
+
+    if intensity_val < 0:
+        intensity_val = 0
+    if intensity_val > 10:
+        intensity_val = 10
+
+    if logical_dir == 'stop' or intensity_val == 0:
+        set_motor(motor_cfg['controller_key'], motor_cfg['channel'], 'stop', 0.0)
+        return
+
+    ##### map clockwise/counterclockwise to electrical forward/reverse using ORIENTATION #####
+
+    orientation = motor_cfg.get('orientation', 1)
+    if orientation >= 0:
+        if logical_dir == 'clockwise':
+            electrical_dir = 'forward'
+        else:
+            electrical_dir = 'reverse'
+    else:
+        if logical_dir == 'clockwise':
+            electrical_dir = 'reverse'
+        else:
+            electrical_dir = 'forward'
+
+    speed = intensity_to_speed(intensity_val)
+    set_motor(motor_cfg['controller_key'], motor_cfg['channel'], electrical_dir, speed)
 
 
 ########## STOP ALL MOTORS ##########

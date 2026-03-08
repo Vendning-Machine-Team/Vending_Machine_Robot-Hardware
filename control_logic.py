@@ -49,6 +49,11 @@ DETECTION_INPUT_LAYER = None
 DETECTION_OUTPUT_LAYER = None
 
 
+##### movement test helpers #####
+
+from movement.forward import person_detected_simple_forward
+
+
 ########## PREPARE ROBOT ##########
 
 ##### prepare real robot #####
@@ -158,10 +163,12 @@ def _physical_loop():  # central function that runs robot in real life
                 CAMERA_PROCESS,
                 mjpeg_buffer
             )
-            inference.run_person_detection(
+            person_detected = inference.run_person_detection(
                 DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
                 inference_frame, run_inference=True
             )
+            if person_detected:
+                person_detected_simple_forward()
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
