@@ -128,9 +128,6 @@ def decode_real_frame(camera_process, mjpeg_buffer):
             mjpeg_buffer = mjpeg_buffer[end_idx + 2:]
             inference_frame = cv2.imdecode(numpy.frombuffer(streamed_frame, dtype=numpy.uint8), cv2.IMREAD_COLOR)
 
-            if inference_frame is None:
-                return mjpeg_buffer, None, None
-
             if config.RL_NOT_CNN:  # if running RL model for movement...
 
                 ##### crop #####
@@ -152,10 +149,8 @@ def decode_real_frame(camera_process, mjpeg_buffer):
             else: # cnn or other use
                 return mjpeg_buffer, streamed_frame, inference_frame
 
-        # Allow buffer to hold at least one full-res MJPEG frame (e.g. 4608x2592 can be several MB)
-        max_buffer_bytes = max(65536, config.CAMERA_CONFIG['WIDTH'] * config.CAMERA_CONFIG['HEIGHT'] * 2)
-        if len(mjpeg_buffer) > max_buffer_bytes:
-            mjpeg_buffer = b''
+        if len(mjpeg_buffer) > 65536: # if buffer overflow...
+            mjpeg_buffer = b'' # reset buffer to avoid overflow
         return mjpeg_buffer, None, None
 
     except Exception as e:
