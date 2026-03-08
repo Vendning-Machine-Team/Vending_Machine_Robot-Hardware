@@ -60,15 +60,6 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, internet
 
-    ##### initialize PREVIOUS_POSITIONS for physical robot (1 robot) #####
-
-    config.PREVIOUS_POSITIONS = []
-    robot_history = deque(maxlen=5)
-    for _ in range(5):
-        robot_history.append(np.zeros(12, dtype=np.float32))
-    config.PREVIOUS_POSITIONS.append(robot_history)
-    logging.debug("PREVIOUS_POSITIONS initialized for physical robot with zeros")
-
     ##### initialize camera process #####
 
     CAMERA_PROCESS = initialize_camera()  # create camera process
@@ -84,15 +75,6 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
             logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
         if COMMAND_QUEUE is None:
             logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
-
-    ##### initialize PREVIOUS_ORIENTATIONS for physical robot (1 robot) #####
-
-    config.PREVIOUS_ORIENTATIONS = []
-    orientation_history = deque(maxlen=5)
-    for _ in range(5):
-        orientation_history.append(np.zeros(6, dtype=np.float32))  # 6 values: shift, move, translate, yaw, roll, pitch
-    config.PREVIOUS_ORIENTATIONS.append(orientation_history)
-    logging.debug("PREVIOUS_ORIENTATIONS initialized for physical robot with zeros")
 
 
 ########## PREPARE ROBOT ##########
@@ -127,7 +109,7 @@ CURRENT_LEG = 'FL'  # set global current leg
 
 ##### physical loop #####
 
-def _physical_loop(CHANNEL_DATA):  # central function that runs robot in real life
+def _physical_loop():  # central function that runs robot in real life
 
     ##### set/initialize variables #####
 
@@ -350,165 +332,6 @@ def _execute_keyboard_commands(keys, camera_frames, is_neutral, current_leg, int
     return is_neutral, current_leg
 
 
-########## RADIO COMMANDS ##########
-
-def _execute_radio_commands(commands, camera_frames, is_neutral, current_leg):
-
-    ##### set variables #####
-
-    global IMAGELESS_GAIT  # set IMAGELESS_GAIT as global to switch between modes via button press
-    IMAGELESS_GAIT = True
-    active_commands = {
-        channel: (action, intensity) for channel, (action, intensity) in commands.items() if action != 'NEUTRAL'
-    }
-    direction_parts = []
-
-    ##### handle no active commands #####
-
-    if not active_commands:
-        logging.info(f"(control_logic.py): All channels neutral, returning to neutral position.\n")
-        # neutral_position(10) # TODO set vending machine idle equivalent here
-        is_neutral = True
-        return is_neutral, current_leg
-
-    ##### cancel out contradictory commands #####
-
-    move_actions = []
-    for channel in ['channel_5', 'channel_6']:
-        if channel in active_commands:
-            action = active_commands[channel][0]
-            if 'MOVE' in action or 'SHIFT' in action:
-                move_actions.append((channel, action))
-
-    ##### movement combinations (channels 5 and 6) #####
-
-    move_forward = active_commands.get('channel_5', ('NEUTRAL', 0))[0] == 'MOVE FORWARD'
-    move_backward = active_commands.get('channel_5', ('NEUTRAL', 0))[0] == 'MOVE BACKWARD'
-    shift_left = active_commands.get('channel_6', ('NEUTRAL', 0))[0] == 'SHIFT LEFT'
-    shift_right = active_commands.get('channel_6', ('NEUTRAL', 0))[0] == 'SHIFT RIGHT'
-
-    ##### rotation (channel 3) #####
-
-    rotate_left = active_commands.get('channel_3', ('NEUTRAL', 0))[0] == 'ROTATE LEFT'
-    rotate_right = active_commands.get('channel_3', ('NEUTRAL', 0))[0] == 'ROTATE RIGHT'
-
-    ##### tilt (channel 4) #####
-
-    tilt_up = active_commands.get('channel_4', ('NEUTRAL', 0))[0] == 'TILT UP'
-    tilt_down = active_commands.get('channel_4', ('NEUTRAL', 0))[0] == 'TILT DOWN'
-
-    ###### special actions (channels 0, 1, 2, 7) #####
-
-    look_up = active_commands.get('channel_0', ('NEUTRAL', 0))[0] == 'LOOK UP'
-    look_down = active_commands.get('channel_0', ('NEUTRAL', 0))[0] == 'LOOK DOWN'
-    trigger_shoot = active_commands.get('channel_1', ('NEUTRAL', 0))[0] == 'TRIGGER SHOOT'
-    squat_down = active_commands.get('channel_2', ('NEUTRAL', 0))[0] == 'SQUAT DOWN'
-    squat_up = active_commands.get('channel_2', ('NEUTRAL', 0))[0] == 'SQUAT UP'
-    plus_action = active_commands.get('channel_7', ('NEUTRAL', 0))[0] == '+'
-    minus_action = active_commands.get('channel_7', ('NEUTRAL', 0))[0] == '-'
-
-    ##### handle diagonals #####
-
-    if move_forward and shift_left:
-        direction_parts.append('w+a')
-        max_intensity = max(
-            active_commands.get('channel_5', ('NEUTRAL', 0))[1],
-            active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-        )
-    elif move_forward and shift_right:
-        direction_parts.append('w+d')
-        max_intensity = max(
-            active_commands.get('channel_5', ('NEUTRAL', 0))[1],
-            active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-        )
-    elif move_backward and shift_left:
-        direction_parts.append('s+a')
-        max_intensity = max(
-            active_commands.get('channel_5', ('NEUTRAL', 0))[1],
-            active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-        )
-    elif move_backward and shift_right:
-        direction_parts.append('s+d')
-        max_intensity = max(
-            active_commands.get('channel_5', ('NEUTRAL', 0))[1],
-            active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-        )
-
-    ##### handle single directions #####
-
-    elif move_forward:
-        direction_parts.append('w')
-        max_intensity = active_commands.get('channel_5', ('NEUTRAL', 0))[1]
-    elif move_backward:
-        direction_parts.append('s')
-        max_intensity = active_commands.get('channel_5', ('NEUTRAL', 0))[1]
-    elif shift_left:
-        direction_parts.append('a')
-        max_intensity = active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-    elif shift_right:
-        direction_parts.append('d')
-        max_intensity = active_commands.get('channel_6', ('NEUTRAL', 0))[1]
-
-    ##### handle rotation #####
-
-    if rotate_left:
-        direction_parts.append('arrowleft')
-        max_intensity = max(config.DEFAULT_INTENSITY, active_commands.get('channel_3', ('NEUTRAL', 0))[1])
-    elif rotate_right:
-        direction_parts.append('arrowright')
-        max_intensity = max(config.DEFAULT_INTENSITY, active_commands.get('channel_3', ('NEUTRAL', 0))[1])
-
-    ##### handle tilt #####
-
-    if tilt_up:
-        direction_parts.append('arrowup')
-        max_intensity = max(config.DEFAULT_INTENSITY, active_commands.get('channel_4', ('NEUTRAL', 0))[1])
-    elif tilt_down:
-        direction_parts.append('arrowdown')
-        max_intensity = max(config.DEFAULT_INTENSITY, active_commands.get('channel_4', ('NEUTRAL', 0))[1])
-
-    ##### handle special actions #####
-
-    special_actions = []
-    if look_up:
-        special_actions.append('LOOK_UP')
-    elif look_down:
-        special_actions.append('LOOK_DOWN')
-    if trigger_shoot:
-        special_actions.append('TRIGGER_SHOOT')
-    if squat_down:
-        special_actions.append('SQUAT_DOWN')
-    elif squat_up:
-        special_actions.append('SQUAT_UP')
-    if plus_action:
-        special_actions.append('PLUS')
-    elif minus_action:
-        special_actions.append('MINUS')
-
-    ##### execute movement or special actions #####
-
-    if direction_parts:
-        direction = _convert_direction_parts_to_fixed_list(direction_parts)
-        logging.debug(f"(control_logic.py): Radio commands: ({active_commands}:{direction})\n")
-        if special_actions:
-            logging.debug(f"(control_logic.py): Special actions: ({special_actions})\n")
-        # TODO set vending machine movement equivalent here
-        # move_direction(direction, camera_frames, config.DEFAULT_INTENSITY, IMAGELESS_GAIT) # TODO locking intensity at 10 for now
-        is_neutral = False
-    elif special_actions:
-        # only special actions, no movement
-        logging.debug(f"(control_logic.py): Special actions only: ({special_actions})\n")
-        # handle special actions here
-        if 'SQUAT_DOWN' in special_actions:
-            pass
-            is_neutral = False
-        elif 'SQUAT_UP' in special_actions:
-            # neutral_position(10) # neutral_position(10) # TODO set vending machine idle equivalent here
-            is_neutral = True
-
-    return is_neutral, current_leg
-
-
 ########## MISCELLANEOUS CONTROL FUNCTIONS ##########
 
 def restart_process():  # start background thread to restart robot_dog.service every 30 minutes by checking elapsed time
@@ -552,4 +375,4 @@ restart_thread = threading.Thread(target=restart_process, daemon=True)
 restart_thread.start()
 # voltage_thread = threading.Thread(target=voltage_monitor, daemon=True)
 # voltage_thread.start()
-_physical_loop(CHANNEL_DATA)  # run robot process
+_physical_loop()  # run robot process
