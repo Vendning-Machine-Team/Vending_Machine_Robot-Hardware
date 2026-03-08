@@ -48,8 +48,8 @@ def _ensure_motors_initialized():
 def person_detected_simple_forward():
     """
     Simple example movement when a person is detected:
-    - Front Left (FL): counterclockwise at intensity 1
-    - Front Right (FR): clockwise at intensity 1
+    - Front Left (FL): counterclockwise at intensity 5
+    - Front Right (FR): clockwise at intensity 5
     """
     _ensure_motors_initialized()
 
@@ -57,5 +57,13 @@ def person_detected_simple_forward():
     if not _MOTORS_INITIALIZED:
         return
 
-    move_motor('FL', 'counterclockwise', 1)
-    move_motor('FR', 'clockwise', 1)
+    move_motor('FL', 'counterclockwise', 5)
+    move_motor('FR', 'clockwise', 5)
+
+
+def person_no_longer_detected():
+    """
+    Stop the motors used by person_detected_simple_forward when no person is detected.
+    """
+    move_motor('FL', 'stop', 0)
+    move_motor('FR', 'stop', 0)

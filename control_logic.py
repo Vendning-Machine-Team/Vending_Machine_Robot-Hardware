@@ -23,6 +23,7 @@ import threading
 import queue
 import time
 import os
+import atexit
 import socket
 import logging
 from collections import deque
@@ -51,7 +52,10 @@ DETECTION_OUTPUT_LAYER = None
 
 ##### movement test helpers #####
 
-from movement.forward import person_detected_simple_forward
+from movement.forward import person_detected_simple_forward, person_no_longer_detected
+from utilities.motors import stop_all
+
+atexit.register(stop_all)
 
 
 ########## PREPARE ROBOT ##########
@@ -169,6 +173,8 @@ def _physical_loop():  # central function that runs robot in real life
             )
             if person_detected:
                 person_detected_simple_forward()
+            else:
+                person_no_longer_detected()
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
@@ -193,10 +199,15 @@ def _physical_loop():  # central function that runs robot in real life
 
     except KeyboardInterrupt:  # if user ends program...
         logging.info("(control_logic.py): KeyboardInterrupt received, exiting.\n")
+        stop_all()
 
     except Exception as e:  # if something breaks and only God knows what it is...
         logging.error(f"(control_logic.py): Unexpected exception in main loop: {e}\n")
+        stop_all()
         exit(1)
+
+    finally:
+        stop_all()
 
 
 ########## HANDLE COMMANDS ##########
