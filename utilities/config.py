@@ -91,19 +91,6 @@ SIGNAL_TUNING_CONFIG = { # dictionary of signal tuning configuration for sensiti
     'DEADBAND_LOW': 1400 # deadband low for PWM signal
 }
 
-##### set receiver channels #####
-
-RECEIVER_CHANNELS = { # dictionary of receiver channels' names, GPIO pins, and states
-    'channel_0': {'name': 'tilt_up_down', 'gpio_pin': 17, 'counter': 0, 'timestamp': time.time()},
-    'channel_1': {'name': 'trigger_shoot', 'gpio_pin': 27, 'counter': 0, 'timestamp': time.time()},
-    'channel_2': {'name': 'squat_up_down', 'gpio_pin': 22, 'counter': 0, 'timestamp': time.time()},
-    'channel_3': {'name': 'rotate_left_right', 'gpio_pin': 5, 'counter': 0, 'timestamp': time.time()},
-    'channel_4': {'name': 'look_up_down', 'gpio_pin': 6, 'counter': 0, 'timestamp': time.time()},
-    'channel_5': {'name': 'move_forward_backward', 'gpio_pin': 13, 'counter': 0, 'timestamp': time.time()},
-    'channel_6': {'name': 'shift_left_right', 'gpio_pin': 19, 'counter': 0, 'timestamp': time.time()},
-    'channel_7': {'name': 'extra_channel', 'gpio_pin': 26, 'counter': 0, 'timestamp': time.time()},
-}
-
 ##### set receiver configuration #####
 
 MAESTRO_CONFIG = {
