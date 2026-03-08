@@ -37,7 +37,7 @@ import logging # import logging library for debugging
 
 LOOP_RATE_HZ = 30 # global loop rate in Hz for all modules TODO DEPRECATED/LEGACY
 CONTROL_MODE = 'web' # current control mode of the robot (web or radio)
-RL_NOT_CNN = True # boolean to switch between testing and RL models (true is RL, false is testing)
+RL_NOT_CNN = False # boolean to switch between testing and RL models (true is RL, false is cnn)
 DEFAULT_INTENSITY = 10 # default intensity for keyboard commands (1 to 10)
 
 ##### set logging configuration #####
