@@ -60,12 +60,12 @@ CAMERA_CONFIG = {
     'PIXEL_SIZE_UM': 1.4,  # pixel size in micrometers
     'DEPTH_OF_FIELD': 0.1,  # depth of field distance in meters
     'APERTURE_RATIO': 1.8,
-    'WIDTH': 640, # width of the camera image
-    'HEIGHT': 480, # height of the camera image
+    'WIDTH': 4608, # width of the camera image
+    'HEIGHT': 2592, # height of the camera image
     'FRAME_RATE': 30, # frame rate of the camera in frames per second
-    'CROP_FRACTION': 0.5, # fraction of the image to crop from each side (0.0 to 1.0)
-    'OUTPUT_WIDTH': 128, # width of the ML image
-    'OUTPUT_HEIGHT': 48, # height of the image for ML inference
+    'CROP_FRACTION': 1.0, # fraction of the image to crop from each side (0.0 to 1.0)
+    'OUTPUT_WIDTH': 4608, # width of the ML image
+    'OUTPUT_HEIGHT': 2592, # height of the image for ML inference
 }
 
 
