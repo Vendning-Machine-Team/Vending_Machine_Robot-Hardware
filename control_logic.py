@@ -32,7 +32,6 @@ import numpy as np
 
 from utilities.log import initialize_logging
 import utilities.config as config
-from utilities.receiver import interpret_commands
 import utilities.internet as internet  # dynamically import internet utilities to be constantly updated
 
 ##### (pre)initialize all utilities #####
@@ -54,14 +53,13 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     ##### import necessary functions #####
 
-    from utilities.receiver import initialize_receiver  # import receiver initialization functions
     from utilities.camera import initialize_camera  # import to start camera logic
     import utilities.internet as internet  # dynamically import internet utilities to be constantly updated
     from utilities.accelerometer import initialize_accelerometer  # import accelerometer initialization functions
 
     ##### initialize global variables #####
 
-    global CAMERA_PROCESS, CHANNEL_DATA, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, internet
+    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, internet
 
     ##### initialize PREVIOUS_POSITIONS for physical robot (1 robot) #####
 
@@ -92,13 +90,6 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
         if COMMAND_QUEUE is None:
             logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
 
-    ##### initialize channel data #####
-
-    elif config.CONTROL_MODE == 'radio':  # if radio control mode...
-        CHANNEL_DATA = initialize_receiver()  # get pigpio instance, decoders, and channel data
-        if CHANNEL_DATA == None:
-            logging.error("(control_logic.py): Failed to initialize CHANNEL_DATA for robot!\n")
-
     ##### initialize PREVIOUS_ORIENTATIONS for physical robot (1 robot) #####
 
     config.PREVIOUS_ORIENTATIONS = []
@@ -117,7 +108,7 @@ set_real_robot_dependencies()
 
 ##### post-initialization dependencies #####
 
-from movement.movement_coordinator import *
+# from movement.movement_coordinator import * TODO import vending machine robot equivalent package here
 from utilities.camera import decode_real_frame
 
 
@@ -151,7 +142,7 @@ def _physical_loop(CHANNEL_DATA):  # central function that runs robot in real li
     ##### run robotic logic #####
 
     try:  # try to run robot startup sequence
-        neutral_position(1)
+        # neutral_position(1) # TODO set vending machine idle equivalent here
         time.sleep(3)
         IS_NEUTRAL = True  # set is_neutral to True
 
@@ -180,12 +171,6 @@ def _physical_loop(CHANNEL_DATA):  # central function that runs robot in real li
                             logging.info(f"(control_logic.py): Received command '{command}' from queue (WILL RUN).\n")
                         else:
                             logging.info(f"(control_logic.py): Received command '{command}' from queue (BLOCKED).\n")
-
-            if config.CONTROL_MODE == 'radio':
-                commands = interpret_commands(CHANNEL_DATA)
-                if IS_COMPLETE:  # if movement is complete, process radio commands
-                    logging.debug(f"(control_logic.py): Processing radio commands: {commands}\n")
-                    threading.Thread(target=_handle_command, args=(commands, inference_frame), daemon=True).start()
 
             if command and IS_COMPLETE:  # if command present and movement complete...
                 # logging.debug(f"(control_logic.py): Running command: {command}...\n")
@@ -225,23 +210,7 @@ def _handle_command(command, camera_frames=None):
     else:
         keys = []
 
-    if config.CONTROL_MODE == 'radio':
-        try:
-            logging.debug(f"(control_logic.py): Executing radio commands: {command}...\n")
-            IS_NEUTRAL, CURRENT_LEG = _execute_radio_commands(
-                command,  # command should be the full commands dict from interpret_commands
-                camera_frames,
-                IS_NEUTRAL,
-                CURRENT_LEG
-            )
-            logging.info(f"(control_logic.py): Executed radio commands: {command}\n")
-            IS_COMPLETE = True
-        except Exception as e:
-            logging.error(f"(control_logic.py): Failed to execute radio commands: {e}\n")
-            IS_NEUTRAL = False
-            IS_COMPLETE = True
-
-    elif config.CONTROL_MODE == 'web':
+    if config.CONTROL_MODE == 'web':
 
         intensity = 10
 
@@ -375,10 +344,10 @@ def _execute_keyboard_commands(keys, camera_frames, is_neutral, current_leg, int
     if direction_parts:
         direction = _convert_direction_parts_to_fixed_list(direction_parts)
     if 'n' in keys or not keys:
-        neutral_position(10)
+        # neutral_position(10) # TODO set vending machine idle equivalent here
         is_neutral = True
     elif direction:
-        move_direction(direction, camera_frames, intensity, IMAGELESS_GAIT)
+        # move_direction(direction, camera_frames, intensity, IMAGELESS_GAIT) # TODO set vending machine movement equivalent here
         is_neutral = False
     else:
         logging.warning(f"(control_logic.py): Invalid command: {keys}.\n")
@@ -403,7 +372,7 @@ def _execute_radio_commands(commands, camera_frames, is_neutral, current_leg):
 
     if not active_commands:
         logging.info(f"(control_logic.py): All channels neutral, returning to neutral position.\n")
-        neutral_position(10)
+        # neutral_position(10) # TODO set vending machine idle equivalent here
         is_neutral = True
         return is_neutral, current_leg
 
@@ -528,7 +497,8 @@ def _execute_radio_commands(commands, camera_frames, is_neutral, current_leg):
         logging.debug(f"(control_logic.py): Radio commands: ({active_commands}:{direction})\n")
         if special_actions:
             logging.debug(f"(control_logic.py): Special actions: ({special_actions})\n")
-        move_direction(direction, camera_frames, config.DEFAULT_INTENSITY, IMAGELESS_GAIT) # TODO locking intensity at 10 for now
+        # TODO set vending machine movement equivalent here
+        # move_direction(direction, camera_frames, config.DEFAULT_INTENSITY, IMAGELESS_GAIT) # TODO locking intensity at 10 for now
         is_neutral = False
     elif special_actions:
         # only special actions, no movement
@@ -538,7 +508,7 @@ def _execute_radio_commands(commands, camera_frames, is_neutral, current_leg):
             pass
             is_neutral = False
         elif 'SQUAT_UP' in special_actions:
-            neutral_position(10)
+            # neutral_position(10) # neutral_position(10) # TODO set vending machine idle equivalent here
             is_neutral = True
 
     return is_neutral, current_leg
