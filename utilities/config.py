@@ -99,6 +99,27 @@ MAESTRO_CONFIG = {
     'SERIAL_TIMEOUT': 1 # set timeout for serial connection
 }
 
+##### dc motor controller configuration #####
+
+MOTOR_CONFIG = {
+    
+    'FRONT_DCMC': {
+        'A_IN1': 17, # channel A direction (physical pin 11)
+        'A_IN2': 27, # channel A direction (physical pin 13)
+        'B_IN1': 22, # channel B direction (physical pin 15)
+        'B_IN2': 23, # channel B direction (physical pin 16)
+        'PWM_FREQ_HZ': 1000,
+    },
+    'BACK_DCMC': { # reserved for future second controller
+        'A_IN1': 5,
+        'A_IN2': 6,
+        'B_IN1': 20,
+        'B_IN2': 21,
+        'PWM_FREQ_HZ': 1000,
+        # optional hardware PWM/EN pins when board has dedicated EN: GPIO 12, 13, 18, 19
+    },
+}
+
 ##### set internet connectivity configuration #####
 
 INTERNET_CONFIG = {
