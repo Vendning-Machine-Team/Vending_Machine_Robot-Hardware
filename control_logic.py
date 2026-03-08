@@ -68,13 +68,16 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     ##### initialize socket and command queue #####
 
-    if config.CONTROL_MODE == 'web':  # if web control mode and robot needs a socket connection for controls and video...
-        SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
-        COMMAND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize command queue for socket communication
-        if SOCK is None:
-            logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
-        if COMMAND_QUEUE is None:
-            logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
+    # Testing: no backend connection; command queue logic still used when commands are added elsewhere
+    # if config.CONTROL_MODE == 'web':  # if web control mode and robot needs a socket connection for controls and video...
+    #     SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
+    #     COMMAND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize command queue for socket communication
+    #     if SOCK is None:
+    #         logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
+    #     if COMMAND_QUEUE is None:
+    #         logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
+    if config.CONTROL_MODE == 'web':
+        COMMAND_QUEUE = queue.Queue()  # empty queue for testing; no backend connection
 
 
 ########## PREPARE ROBOT ##########
@@ -132,15 +135,13 @@ def _physical_loop():  # central function that runs robot in real life
 
         while True:  # central loop to entire process, commenting out of importance
 
-            mjpeg_buffer, streamed_frame, inference_frame = decode_real_frame(  # run camera and decode frame
+            mjpeg_buffer, _, inference_frame = decode_real_frame(  # run camera and decode frame (no video stream to backend)
                 CAMERA_PROCESS,
                 mjpeg_buffer
             )
             command = None  # initially no command
 
             if config.CONTROL_MODE == 'web':  # if web control enabled...
-                internet.stream_to_backend(SOCK, streamed_frame)
-
                 if COMMAND_QUEUE is not None and not COMMAND_QUEUE.empty():  # if command queue is not empty...
                     command = COMMAND_QUEUE.get()  # get command from queue
                     if command is not None:
