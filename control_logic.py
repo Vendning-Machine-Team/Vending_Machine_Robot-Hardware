@@ -27,6 +27,7 @@ import socket
 import logging
 from collections import deque
 import numpy as np
+import cv2
 
 ##### mandatory dependencies #####
 
@@ -43,6 +44,9 @@ SOCK = None
 COMMAND_QUEUE = None
 ROBOT_ID = None
 JOINT_MAP = {}
+DETECTION_MODEL = None
+DETECTION_INPUT_LAYER = None
+DETECTION_OUTPUT_LAYER = None
 
 
 ########## PREPARE ROBOT ##########
@@ -59,6 +63,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     ##### initialize global variables #####
 
     global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, internet
+    global DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER
 
     ##### initialize camera process #####
 
@@ -79,6 +84,19 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     if config.CONTROL_MODE == 'web':
         COMMAND_QUEUE = queue.Queue()  # empty queue for testing; no backend connection
 
+    ##### initialize SSDLite person detection model #####
+
+    from utilities import inference
+    model_path = config.INFERENCE_CONFIG.get('CNN_PATH') or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'model', 'ssdlite_mobilenet_v2.xml'
+    )
+    if os.path.isfile(model_path):
+        DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER = inference.load_and_compile_model(model_path)
+        if DETECTION_MODEL is None:
+            logging.warning("(control_logic.py): SSDLite model failed to load; person detection disabled.\n")
+    else:
+        logging.warning(f"(control_logic.py): SSDLite model not found at {model_path}; person detection disabled.\n")
+
 
 ########## PREPARE ROBOT ##########
 
@@ -90,6 +108,7 @@ set_real_robot_dependencies()
 
 # from movement.movement_coordinator import * TODO import vending machine robot equivalent package here
 from utilities.camera import decode_real_frame
+from utilities import inference
 
 
 
@@ -139,6 +158,13 @@ def _physical_loop():  # central function that runs robot in real life
                 CAMERA_PROCESS,
                 mjpeg_buffer
             )
+            inference.run_person_detection(
+                DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
+                inference_frame, run_inference=True
+            )
+            if inference_frame is not None:
+                cv2.imshow("SSDLite detection", inference_frame)
+                cv2.waitKey(1)
             command = None  # initially no command
 
             if config.CONTROL_MODE == 'web':  # if web control enabled...
