@@ -17,11 +17,13 @@
 
 ########## IMPORT DEPENDENCIES ##########
 
-##### import motor functions #####
+##### import necessary libraries #####
 
 import math
 
-from utilities.motors import move_motor
+##### import motor functions #####
+
+from utilities.motors import move_motor, stop_all
 
 
 
@@ -32,59 +34,15 @@ from utilities.motors import move_motor
 ###################################################
 
 
-########## MASTER VECTOR DIRECTION FUNCTION ##########
+########## MASTER DRIVE FUNCTION ##########
 
-def _clamp(value, minimum, maximum):
-    return max(minimum, min(maximum, value))
+##### master drive function #####
 
+# function used to drive the robot in a given direction and intensity
+# x: left/right strafe (-1 left, +1 right), y: forward/back (-1 back, +1 forward)
+# r: rotation (-1 left, +1 right), intensity: 0-10 overall scale
+def drive(x, y, r, intensity):
 
-def _apply_wheel_value(motor_name, wheel_value, max_intensity):
-    # wheel_value should be in -1.0 to 1.0 after normalization
-    v = _clamp(float(wheel_value), -1.0, 1.0)
-    max_intensity = _clamp(int(max_intensity), 0, 10)
-
-    scaled_intensity = int(round(abs(v) * max_intensity))
-    if scaled_intensity <= 0:
-        move_motor(motor_name, 'stop', 0)
-        return
-
-    # + value means use the same wheel spin direction as forward()
-    # - value means reverse that wheel
-    if motor_name in ('FL', 'BL'):
-        direction = 'counterclockwise' if v > 0 else 'clockwise'
-    else:
-        direction = 'clockwise' if v > 0 else 'counterclockwise'
-
-    move_motor(motor_name, direction, scaled_intensity)
-
-
-def set_wheel_speeds(fl, fr, bl, br, max_intensity=10):
-    """
-    set wheel values directly.
-    expected input per wheel: -1.0 to 1.0
-    positive = same direction used for forward()
-    """
-    values = [float(fl), float(fr), float(bl), float(br)]
-
-    # normalize if any wheel magnitude is above 1.0
-    max_mag = max(abs(v) for v in values)
-    if max_mag > 1.0:
-        values = [v / max_mag for v in values]
-
-    _apply_wheel_value('FL', values[0], max_intensity)
-    _apply_wheel_value('FR', values[1], max_intensity)
-    _apply_wheel_value('BL', values[2], max_intensity)
-    _apply_wheel_value('BR', values[3], max_intensity)
-
-
-def drive(x, y, r, intensity=10):
-    """
-    mecanum vector drive.
-    x: left/right strafe (-1 left, +1 right)
-    y: forward/back (-1 back, +1 forward)
-    r: rotation (-1 left, +1 right)
-    intensity: 0-10 overall scale
-    """
     x = _clamp(float(x), -1.0, 1.0)
     y = _clamp(float(y), -1.0, 1.0)
     r = _clamp(float(r), -1.0, 1.0)
@@ -98,11 +56,11 @@ def drive(x, y, r, intensity=10):
     set_wheel_speeds(fl, fr, bl, br, intensity)
 
 
+##### drive by angle #####
+
+# drive with an angle and magnitude, 0 deg = forward, 90 deg = right, 180 deg = backward, 270 deg = left
 def drive_polar(angle_deg, magnitude, rotation=0.0, intensity=10):
-    """
-    drive by angle instead of x/y.
-    0 deg = forward, 90 deg = right, 180 deg = backward, 270 deg = left
-    """
+
     angle_rad = math.radians(float(angle_deg))
     magnitude = _clamp(float(magnitude), 0.0, 1.0)
     rotation = _clamp(float(rotation), -1.0, 1.0)
@@ -112,69 +70,68 @@ def drive_polar(angle_deg, magnitude, rotation=0.0, intensity=10):
 
     drive(x, y, rotation, intensity)
 
+##### stop all wheels #####
 
 def stop():
-    move_motor('FL', 'stop', 0)
-    move_motor('FR', 'stop', 0)
-    move_motor('BL', 'stop', 0)
-    move_motor('BR', 'stop', 0)
+
+    stop_all()
 
 
-########## FORWARD LOGIC ##########
+########## CARDINAL DIRECTIONS LOGIC ##########
 
-def forward(intensity):
-    # forward:
-    # fl counterclockwise, fr clockwise, bl counterclockwise, br clockwise
+##### forward #####
+
+def forward(intensity): # forward is forward, fl counterclockwise, fr clockwise, bl counterclockwise, br clockwise
+
     move_motor('FL', 'counterclockwise', intensity)
     move_motor('FR', 'clockwise', intensity)
     move_motor('BL', 'counterclockwise', intensity)
     move_motor('BR', 'clockwise', intensity)
 
+##### backward #####
 
-########## BACKWARD LOGIC ##########
+def backward(intensity): # backward is forward reversed
 
-def backward(intensity):
-    # backward is forward reversed
     move_motor('FL', 'clockwise', intensity)
     move_motor('FR', 'counterclockwise', intensity)
     move_motor('BL', 'clockwise', intensity)
     move_motor('BR', 'counterclockwise', intensity)
 
+##### strafe left #####
 
-########## SHIFT LEFT LOGIC ##########
+def strafe_left(intensity): # strafe left
 
-def shift_left(intensity):
-    # strafe left
     move_motor('FL', 'clockwise', intensity)
     move_motor('FR', 'clockwise', intensity)
     move_motor('BL', 'counterclockwise', intensity)
     move_motor('BR', 'counterclockwise', intensity)
 
+##### strafe right #####
 
-########## SHIFT RIGHT LOGIC ##########
+def strafe_right(intensity): # strafe right
 
-def shift_right(intensity):
-    # strafe right is strafe left reversed
     move_motor('FL', 'counterclockwise', intensity)
     move_motor('FR', 'counterclockwise', intensity)
     move_motor('BL', 'clockwise', intensity)
     move_motor('BR', 'clockwise', intensity)
 
 
-########## ROTATE LEFT LOGIC ##########
+########## ROTATION LOGIC ##########
 
-def rotate_left(intensity):
-    # rotate left in place
+##### rotate left #####
+
+def rotate_left(intensity): # rotate left in place
+
     move_motor('FL', 'clockwise', intensity)
     move_motor('FR', 'clockwise', intensity)
     move_motor('BL', 'clockwise', intensity)
     move_motor('BR', 'clockwise', intensity)
 
 
-########## ROTATE RIGHT LOGIC ##########
+##### rotate right #####
 
-def rotate_right(intensity):
-    # rotate right in place
+def rotate_right(intensity): # rotate right in place
+
     move_motor('FL', 'counterclockwise', intensity)
     move_motor('FR', 'counterclockwise', intensity)
     move_motor('BL', 'counterclockwise', intensity)
@@ -183,45 +140,97 @@ def rotate_right(intensity):
 
 ########## DIAGONAL LOGIC ##########
 
-def diagonal_front_left(intensity):
-    # front-left diagonal
+##### diagonal front left #####
+
+def diagonal_front_left(intensity): # front-left diagonal
+
     move_motor('FL', 'stop', 0)
     move_motor('FR', 'clockwise', intensity)
     move_motor('BL', 'counterclockwise', intensity)
     move_motor('BR', 'stop', 0)
 
+##### diagonal front right #####
 
-def diagonal_front_right(intensity):
-    # front-right diagonal
+def diagonal_front_right(intensity): # front-right diagonal
+
     move_motor('FL', 'counterclockwise', intensity)
     move_motor('FR', 'stop', 0)
     move_motor('BL', 'stop', 0)
     move_motor('BR', 'clockwise', intensity)
 
+##### diagonal back left #####
 
-def diagonal_back_left(intensity):
-    # back-left diagonal
+def diagonal_back_left(intensity): # back-left diagonal
+
     move_motor('FL', 'clockwise', intensity)
     move_motor('FR', 'stop', 0)
     move_motor('BL', 'stop', 0)
     move_motor('BR', 'counterclockwise', intensity)
 
+##### diagonal back right #####
 
-def diagonal_back_right(intensity):
-    # back-right diagonal
+def diagonal_back_right(intensity): # back-right diagonal
+
     move_motor('FL', 'stop', 0)
     move_motor('FR', 'counterclockwise', intensity)
     move_motor('BL', 'clockwise', intensity)
     move_motor('BR', 'stop', 0)
 
 
-########## ARC LOGIC ##########
+########## ARC MOVEMENT LOGIC ##########
 
-def arc_left(forward_strength=1.0, turn_strength=0.4, intensity=10):
-    # move forward while curving left
+##### arc left #####
+
+def arc_left(forward_strength=1.0, turn_strength=0.4, intensity=10): # function used to move forward while curving left
+
     drive(0.0, forward_strength, -abs(turn_strength), intensity)
 
+##### arc right #####
 
-def arc_right(forward_strength=1.0, turn_strength=0.4, intensity=10):
-    # move forward while curving right
+def arc_right(forward_strength=1.0, turn_strength=0.4, intensity=10): # function used to move forward while curving right
+
     drive(0.0, forward_strength, abs(turn_strength), intensity)
+
+
+########## HELPER FUNCTIONS ##########
+
+##### clamp vector values #####
+
+def _clamp(value, minimum, maximum): # function used to make sure direction vectors are within -1.0 to 1.0
+
+    return max(minimum, min(maximum, value))
+
+##### apply wheel values #####
+
+def _apply_wheel_value(motor_name, wheel_value, max_intensity): # function used to apply the wheel value to the motor
+
+    v = _clamp(float(wheel_value), -1.0, 1.0) # make sure wheel value is within -1.0 to 1.0
+    max_intensity = _clamp(int(max_intensity), 0, 10) # make sure max intensity is within 0 to 10
+    scaled_intensity = int(round(abs(v) * max_intensity))
+
+    if scaled_intensity <= 0:
+        move_motor(motor_name, 'stop', 0)
+        return
+
+    # + value means use the same wheel spin direction as forward(), - value means reverse that wheel
+    if motor_name in ('FL', 'BL'):
+        direction = 'counterclockwise' if v > 0 else 'clockwise'
+    else:
+        direction = 'clockwise' if v > 0 else 'counterclockwise'
+
+    move_motor(motor_name, direction, scaled_intensity)
+
+##### set wheel speeds #####
+
+def set_wheel_speeds(fl, fr, bl, br, max_intensity=10): # function used to set the speed of each wheel, positive = foward direction
+
+    values = [float(fl), float(fr), float(bl), float(br)]
+    max_mag = max(abs(v) for v in values) # normalize if any wheel magnitude is above 1.0
+
+    if max_mag > 1.0:
+        values = [v / max_mag for v in values]
+
+    _apply_wheel_value('FL', values[0], max_intensity)
+    _apply_wheel_value('FR', values[1], max_intensity)
+    _apply_wheel_value('BL', values[2], max_intensity)
+    _apply_wheel_value('BR', values[3], max_intensity)
