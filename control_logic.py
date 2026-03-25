@@ -53,7 +53,7 @@ DETECTION_OUTPUT_LAYER = None
 ##### movement functions #####
 
 from movement.mecanum import *
-from utilities.motors import stop_all
+from utilities.motors import initialize_motor_controllers, stop_all
 
 atexit.register(stop_all)
 
@@ -106,6 +106,10 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     else:
         logging.warning(f"(control_logic.py): SSDLite model not found at {model_path}; person detection disabled.\n")
 
+    ##### initialize motors #####
+
+    initialize_motor_controllers()
+
 
 ########## PREPARE ROBOT ##########
 
@@ -140,7 +144,7 @@ CURRENT_LEG = 'FL'  # set global current leg
 ##### person detection variables #####
 
 # person detection smoothing (debounce) to prevent start/stop chattering
-PERSON_DETECTED_FRAMES_TO_START = 3  # require N consecutive "person detected" frames
+PERSON_DETECTED_FRAMES_TO_START = 1  # require N consecutive "person detected" frames
 PERSON_ABSENT_FRAMES_TO_STOP = 3  # require M consecutive "person not detected" frames
 PERSON_MIN_MOVE_SECONDS = 0.20  # minimum time to keep moving once started
 PERSON_DETECTED_STREAK = 0  # consecutive frames with person_detected == True
@@ -191,24 +195,29 @@ def _physical_loop():  # central function that runs robot in real life
             now = time.time()
 
             if person_detected:
-                PERSON_DETECTED_STREAK += 1
-                PERSON_ABSENT_STREAK = 0
+                forward(10)
             else:
-                PERSON_ABSENT_STREAK += 1
-                PERSON_DETECTED_STREAK = 0
+                stop_all()
+
+            #if person_detected:
+            #    PERSON_DETECTED_STREAK += 1
+            #    PERSON_ABSENT_STREAK = 0
+            #else:
+            #    PERSON_ABSENT_STREAK += 1
+            #    PERSON_DETECTED_STREAK = 0
 
             # transition STOP -> MOVE
-            if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
-                forward(10)  # start moving at max intensity
-                PERSON_STATE_MOVING = True
-                PERSON_LAST_STATE_CHANGE_TIME = now
+            #if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
+            #    forward(10)  # start moving at max intensity
+            #    PERSON_STATE_MOVING = True
+            #    PERSON_LAST_STATE_CHANGE_TIME = now
 
             # transition MOVE -> STOP (with a minimum move hold time)
-            elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
-                if (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS:
-                    stop_all()
-                    PERSON_STATE_MOVING = False
-                    PERSON_LAST_STATE_CHANGE_TIME = now
+            #elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
+            #    if (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS:
+            #        stop_all()
+            #        PERSON_STATE_MOVING = False
+            #        PERSON_LAST_STATE_CHANGE_TIME = now
 
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)

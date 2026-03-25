@@ -39,36 +39,6 @@ PI = None
 MOTOR_NAME_INDEX = {}
 
 
-def _build_motor_name_index(): # build a lookup from logical motor name (FL, FR, BL, BR) to (controller_key, channel, orientation)
-
-    index = {}
-
-    for controller_key, cfg in MOTOR_CONFIG.items():
-
-        motors = cfg.get('MOTORS', {})
-
-        for name, m_cfg in motors.items():
-
-            key = str(name).upper()
-
-            if key in index:
-                
-                logging.warning(
-                    f"(motors.py): Duplicate motor name '{key}' in MOTOR_CONFIG; "
-                    f"overwriting previous mapping.\n"
-                )
-
-            index[key] = {
-                'controller_key': controller_key,
-                'channel': str(m_cfg.get('CHANNEL', 'A')).upper(),
-                'orientation': 1 if m_cfg.get('ORIENTATION', 1) >= 0 else -1,
-            }
-
-    return index
-
-MOTOR_NAME_INDEX = _build_motor_name_index()
-
-
 
 
 
@@ -96,6 +66,12 @@ def initialize_motor_controllers():
 
             logging.error("(motors.py): Failed to connect to pigpio daemon. Is pigpiod running?\n")
             return None
+
+        logging.debug("(motors.py): Building motor name index...\n")
+
+        MOTOR_NAME_INDEX = _build_motor_name_index()
+
+        logging.info("(motors.py): Built motor name index.\n")
 
         for controller_key, cfg in MOTOR_CONFIG.items():
 
@@ -125,6 +101,36 @@ def initialize_motor_controllers():
             PI = None
 
         return None
+
+
+########## BUILD MOTOR NAME INDEX ##########
+
+def _build_motor_name_index(): # build a lookup from logical motor name (FL, FR, BL, BR) to (controller_key, channel, orientation)
+
+    index = {}
+
+    for controller_key, cfg in MOTOR_CONFIG.items():
+
+        motors = cfg.get('MOTORS', {})
+
+        for name, m_cfg in motors.items():
+
+            key = str(name).upper()
+
+            if key in index:
+                
+                logging.warning(
+                    f"(motors.py): Duplicate motor name '{key}' in MOTOR_CONFIG; "
+                    f"overwriting previous mapping.\n"
+                )
+
+            index[key] = {
+                'controller_key': controller_key,
+                'channel': str(m_cfg.get('CHANNEL', 'A')).upper(),
+                'orientation': 1 if m_cfg.get('ORIENTATION', 1) >= 0 else -1,
+            }
+
+    return index
 
 
 ########## INTENSITY TO SPEED ##########
