@@ -82,14 +82,14 @@ def load_and_compile_model( # function to load and compile an OpenVINO model
 
     try: # try to destroy any lingering OpenCV windows from previous runs
         cv2.destroyAllWindows()
-        logging.info("(opencv.py): Closed lingering OpenCV windows.\n")
+        logging.info("(inference.py): Closed lingering OpenCV windows.\n")
 
     except Exception as e:
-        logging.warning(f"(opencv.py): Failed to destroy OpenCV windows: {e}\n")
+        logging.warning(f"(inference.py): Failed to destroy OpenCV windows: {e}\n")
 
     ##### compile model #####
 
-    logging.debug("(opencv.py): Loading and compiling model...\n")
+    logging.debug("(inference.py): Loading and compiling model...\n")
 
     try: # try to load and compile the model
 
@@ -99,20 +99,20 @@ def load_and_compile_model( # function to load and compile an OpenVINO model
         compiled_model = ie.compile_model(model, device_name=device_name) # compile model for specified device
         input_layer = compiled_model.input(0) # get input layer of compiled model
         output_layer = compiled_model.output(0) # get output layer of compiled model
-        logging.info(f"(opencv.py): Model loaded and compiled on {device_name}.\n")
-        logging.debug(f"(opencv.py): Model input shape: {input_layer.shape}\n")
+        logging.info(f"(inference.py): Model loaded and compiled on {device_name}.\n")
+        logging.debug(f"(inference.py): Model input shape: {input_layer.shape}\n")
 
         try: # try to test model with dummy input
 
             test_with_dummy_input(compiled_model, input_layer, output_layer) # test model with dummy input
         except Exception as e: # if dummy input test fails...
-            logging.warning(f"(opencv.py): Dummy input test failed: {e}\n")
+            logging.warning(f"(inference.py): Dummy input test failed: {e}\n")
             return None, None, None
 
         return compiled_model, input_layer, output_layer
 
     except Exception as e:
-        logging.error(f"(opencv.py): Failed to load/compile model: {e}\n")
+        logging.error(f"(inference.py): Failed to load/compile model: {e}\n")
         return None, None, None
 
 
@@ -155,11 +155,11 @@ def test_with_dummy_input(compiled_model, input_layer, output_layer): # function
 
     ##### check if model/layers are properly initialized #####
 
-    logging.debug("(opencv.py): Testing model with dummy input...\n")
+    logging.debug("(inference.py): Testing model with dummy input...\n")
 
     # if model/layers not properly initialized...
     if compiled_model is None or input_layer is None or output_layer is None:
-        logging.error("(opencv.py): Model is not properly initialized.\n")
+        logging.error("(inference.py): Model is not properly initialized.\n")
         return
 
     ##### run dummy input through the model #####
@@ -169,10 +169,10 @@ def test_with_dummy_input(compiled_model, input_layer, output_layer): # function
         dummy_input_shape = input_layer.shape # get the shape of the input layer
         dummy_input = np.ones(dummy_input_shape, dtype=np.float32) # create a dummy input with ones
         _ = compiled_model([dummy_input])[output_layer] # run the model but don't use output
-        logging.info("(opencv.py): Dummy input test passed.\n")
+        logging.info("(inference.py): Dummy input test passed.\n")
 
     except Exception as e:
-        logging.error(f"(opencv.py): Dummy input test failed: {e}\n")
+        logging.error(f"(inference.py): Dummy input test failed: {e}\n")
 
 
 ########## RUN GAIT ADJUSTMENT RL MODEL STANDARD ##########
@@ -334,13 +334,13 @@ def run_gait_adjustment_blind( # function to run gait adjustment RL model withou
 def run_person_detection(compiled_model, input_layer, output_layer, frame, run_inference):
 
     if frame is None:
-        logging.warning("(opencv.py): Frame is None.\n")
+        logging.debug("(inference.py): Frame is None.\n")
         return False
 
     try:
         if not run_inference:
 
-            logging.debug("(opencv.py): Not running inference, passing...\n")
+            logging.debug("(inference.py): Not running inference, passing...\n")
             #cv2.imshow("video (standard)", frame)
             #cv2.waitKey(1)
             return False
@@ -349,7 +349,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
 
         if compiled_model is not None and input_layer is not None and output_layer is not None:
 
-            logging.debug("(opencv.py): Running inference...\n")
+            logging.debug("(inference.py): Running inference...\n")
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             input_blob = cv2.resize(frame_rgb, (256, 256)).transpose(2, 0, 1)
             input_blob = np.expand_dims(input_blob, axis=0).astype(np.float32)
@@ -377,15 +377,15 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                         2
                     )
 
-            logging.info("(opencv.py): Inference complete.\n")
+            logging.debug("(inference.py): Inference complete.\n")
             #cv2.imshow("video (inference)", frame)
             #cv2.waitKey(1)
 
         else:
-            logging.warning("(opencv.py): Inference requested but model is not loaded.\n")
+            logging.warning("(inference.py): Inference requested but model is not loaded.\n")
 
         return person_detected
 
     except Exception as e:
-        logging.error(f"(opencv.py): Inference error: {e}\n")
+        logging.error(f"(inference.py): Inference error: {e}\n")
         return False
