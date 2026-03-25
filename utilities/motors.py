@@ -188,9 +188,9 @@ def set_motor(controller_key, channel, direction, speed=0.0):
 ########## MOVE MOTOR BY NAME ##########
 
 # high-level helper to move a specific wheel motor by name
-    # motor_name: 'FL', 'FR', 'BL', 'BR'
-    # direction: 'clockwise' | 'counterclockwise' | 'cw' | 'ccw' | 'stop'
-    # intensity: integer 1-10 (mapped to 10%–100% duty); 0 or None = stop
+# motor_name: 'FL', 'FR', 'BL', 'BR'
+# direction: 'clockwise' | 'counterclockwise' | 'cw' | 'ccw' | 'stop'
+# intensity: integer 1-10 (mapped to 10%–100% duty); 0 or None = stop
 def move_motor(motor_name, direction, intensity):
 
     if PI is None or not PI.connected:

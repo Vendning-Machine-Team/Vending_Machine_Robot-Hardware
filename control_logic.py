@@ -167,17 +167,22 @@ def _physical_loop():  # central function that runs robot in real life
                 CAMERA_PROCESS,
                 mjpeg_buffer
             )
-            person_detected = inference.run_person_detection(
+
+            person_detected = inference.run_person_detection( # check if person detected
                 DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
                 inference_frame, run_inference=True
             )
+
+            # TODO AI/Pathfinding team can create behaviors here
             if person_detected:
-                person_detected_simple_forward()
+                forward(10) # move robot forward on person detection at max intensity
             else:
-                person_no_longer_detected()
+                stop_all() # stop all motors if person no longer detected
+
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
+
             command = None  # initially no command
 
             if config.CONTROL_MODE == 'web':  # if web control enabled...

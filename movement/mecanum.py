@@ -23,7 +23,7 @@ import math
 
 ##### import motor functions #####
 
-from utilities.motors import move_motor, stop_all
+from utilities.motors import move_motor
 
 
 
@@ -70,18 +70,12 @@ def drive_polar(angle_deg, magnitude, rotation=0.0, intensity=10):
 
     drive(x, y, rotation, intensity)
 
-##### stop all wheels #####
-
-def stop():
-
-    stop_all()
-
 
 ########## CARDINAL DIRECTIONS LOGIC ##########
 
 ##### forward #####
 
-def forward(intensity): # forward is forward, fl counterclockwise, fr clockwise, bl counterclockwise, br clockwise
+def forward(intensity): # fl counterclockwise, fr clockwise, bl counterclockwise, br clockwise
 
     move_motor('FL', 'counterclockwise', intensity)
     move_motor('FR', 'clockwise', intensity)
