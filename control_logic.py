@@ -137,14 +137,14 @@ IS_COMPLETE = True  # boolean that tracks if the robot is done moving, independe
 IS_NEUTRAL = False  # set global neutral standing boolean
 CURRENT_LEG = 'FL'  # set global current leg
 
-# Person detection smoothing (debounce) to prevent start/stop chattering.
-# Camera runs ~24fps, so these frame counts translate to ~xx milliseconds.
+##### person detection variables #####
+
+# person detection smoothing (debounce) to prevent start/stop chattering
 PERSON_DETECTED_FRAMES_TO_START = 3  # require N consecutive "person detected" frames
 PERSON_ABSENT_FRAMES_TO_STOP = 3  # require M consecutive "person not detected" frames
-PERSON_MIN_MOVE_SECONDS = 0.20      # minimum time to keep moving once started
-
+PERSON_MIN_MOVE_SECONDS = 0.20  # minimum time to keep moving once started
 PERSON_DETECTED_STREAK = 0  # consecutive frames with person_detected == True
-PERSON_ABSENT_STREAK = 0   # consecutive frames with person_detected == False
+PERSON_ABSENT_STREAK = 0  # consecutive frames with person_detected == False
 PERSON_STATE_MOVING = False  # whether motors are currently commanded to move
 PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
 
@@ -187,7 +187,7 @@ def _physical_loop():  # central function that runs robot in real life
             )
 
             # TODO AI/Pathfinding team can create behaviors here
-            # Debounce the binary detection to avoid start/stop motor chattering.
+            #  debounce binary detection to avoid start/stop motor chattering
             now = time.time()
 
             if person_detected:
@@ -197,13 +197,13 @@ def _physical_loop():  # central function that runs robot in real life
                 PERSON_ABSENT_STREAK += 1
                 PERSON_DETECTED_STREAK = 0
 
-            # Transition STOP -> MOVE
+            # transition STOP -> MOVE
             if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
                 forward(10)  # start moving at max intensity
                 PERSON_STATE_MOVING = True
                 PERSON_LAST_STATE_CHANGE_TIME = now
 
-            # Transition MOVE -> STOP (with a minimum move hold time)
+            # transition MOVE -> STOP (with a minimum move hold time)
             elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
                 if (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS:
                     stop_all()
