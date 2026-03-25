@@ -50,9 +50,9 @@ DETECTION_INPUT_LAYER = None
 DETECTION_OUTPUT_LAYER = None
 
 
-##### movement test helpers #####
+##### movement functions #####
 
-from movement.forward import person_detected_simple_forward, person_no_longer_detected
+from movement.mecanum import *
 from utilities.motors import stop_all
 
 atexit.register(stop_all)
