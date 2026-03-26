@@ -102,14 +102,14 @@ MAESTRO_CONFIG = {
 ##### dc motor controller configuration #####
 
 # pin mapping (BCM):
-# 11     GPIO 17  FRONT LEFT     A_IN1
-# 13     GPIO 27  FRONT LEFT     A_IN2
-# 15     GPIO 22  FRONT RIGHT    B_IN1
-# 16     GPIO 23  FRONT RIGHT    B_IN2
-# 29     GPIO 5   BACK LEFT      A_IN1
-# 31     GPIO 6   BACK LEFT      A_IN2
-# 38     GPIO 20  BACK RIGHT     B_IN1
-# 40     GPIO 21  BACK RIGHT     B_IN2
+# 11     GPIO 17  FRONT LEFT     A_IN1   (LEFT_DCMC motor A -> FL)
+# 13     GPIO 27  FRONT LEFT     A_IN2   (LEFT_DCMC motor A -> FL)
+# 15     GPIO 22  BACK LEFT      B_IN1   (LEFT_DCMC motor B -> BL)
+# 16     GPIO 23  BACK LEFT      B_IN2   (LEFT_DCMC motor B -> BL)
+# 29     GPIO 5   BACK RIGHT     A_IN1   (RIGHT_DCMC motor A -> BR)
+# 31     GPIO 6   BACK RIGHT     A_IN2   (RIGHT_DCMC motor A -> BR)
+# 38     GPIO 20  FRONT RIGHT    B_IN1   (RIGHT_DCMC motor B -> FR)
+# 40     GPIO 21  FRONT RIGHT    B_IN2   (RIGHT_DCMC motor B -> FR)
 #
 # each controller also defines a MOTORS map that assigns logical wheel
 # names (FL, FR, BL, BR) to a DCMC channel and an orientation flag;
@@ -118,36 +118,38 @@ MAESTRO_CONFIG = {
 
 MOTOR_CONFIG = {
 
-    'FRONT_DCMC': {
+    # LEFT side DCMC controller
+    'LEFT_DCMC': {
         'A_IN1': 17,  # channel A direction (physical pin 11)  -> FL
         'A_IN2': 27,  # channel A direction (physical pin 13)  -> FL
-        'B_IN1': 22,  # channel B direction (physical pin 15)  -> FR
-        'B_IN2': 23,  # channel B direction (physical pin 16)  -> FR
+        'B_IN1': 22,  # channel B direction (physical pin 15)  -> BL
+        'B_IN2': 23,  # channel B direction (physical pin 16)  -> BL
         'PWM_FREQ_HZ': 1000,
         'MOTORS': {
             'FL': {
                 'CHANNEL': 'A',
                 'ORIENTATION': 1,  # 1 = clockwise->forward, -1 = clockwise->reverse
             },
-            'FR': {
+            'BL': {
                 'CHANNEL': 'B',
                 'ORIENTATION': 1,
             },
         },
     },
-    'BACK_DCMC': {  # reserved for future second controller
-        'A_IN1': 5,   # physical pin 29  -> BL
-        'A_IN2': 6,   # physical pin 31  -> BL
-        'B_IN1': 20,  # physical pin 38  -> BR
-        'B_IN2': 21,  # physical pin 40  -> BR
+    # RIGHT side DCMC controller
+    'RIGHT_DCMC': {
+        'A_IN1': 5,   # physical pin 29  -> BR
+        'A_IN2': 6,   # physical pin 31  -> BR
+        'B_IN1': 20,  # channel B direction (physical pin 38)  -> FR
+        'B_IN2': 21,  # channel B direction (physical pin 40)  -> FR
         'PWM_FREQ_HZ': 1000,
         'MOTORS': {
-            'BL': {
-                'CHANNEL': 'A',
+            'FR': {
+                'CHANNEL': 'B',
                 'ORIENTATION': 1,
             },
             'BR': {
-                'CHANNEL': 'B',
+                'CHANNEL': 'A',
                 'ORIENTATION': 1,
             },
         },

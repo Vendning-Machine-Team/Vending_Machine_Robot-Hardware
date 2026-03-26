@@ -146,7 +146,7 @@ def intensity_to_speed(intensity): # map joystick intensity 1-10 (e.g. from inte
 ########## SET MOTOR ##########
 
 # set one motor on a DCMC controller
-# controller_key: 'FRONT_DCMC' or 'BACK_DCMC'
+# controller_key: 'LEFT_DCMC' or 'RIGHT_DCMC'
 # channel: 'A' or 'B'
 # direction: 'forward' | 'reverse' | 'stop'
 # speed: 0.0 to 1.0 (ignored for 'stop')
