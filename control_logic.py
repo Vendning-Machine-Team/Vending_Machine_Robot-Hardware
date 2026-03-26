@@ -53,7 +53,7 @@ DETECTION_OUTPUT_LAYER = None
 ##### movement functions #####
 
 from movement.mecanum import *
-from utilities.motors import initialize_motor_controllers, stop_all
+from utilities.motors import initialize_motor_controllers, stop_all, run_back_motors
 
 atexit.register(stop_all)
 
@@ -145,12 +145,14 @@ CURRENT_LEG = 'FL'  # set global current leg
 
 # person detection smoothing (debounce) to prevent start/stop chattering
 PERSON_DETECTED_FRAMES_TO_START = 1  # require N consecutive "person detected" frames
-PERSON_ABSENT_FRAMES_TO_STOP = 3  # require M consecutive "person not detected" frames
-PERSON_MIN_MOVE_SECONDS = 0.20  # minimum time to keep moving once started
+PERSON_ABSENT_FRAMES_TO_STOP = 24  # require M consecutive "person not detected" frames
+PERSON_MIN_MOVE_SECONDS = 0.60  # minimum time to keep moving once started
+PERSON_ABSENT_HOLD_SECONDS = 0.50  # keep moving this long after last positive detection
 PERSON_DETECTED_STREAK = 0  # consecutive frames with person_detected == True
 PERSON_ABSENT_STREAK = 0  # consecutive frames with person_detected == False
 PERSON_STATE_MOVING = False  # whether motors are currently commanded to move
 PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
+PERSON_LAST_DETECTED_TIME = 0.0  # tracks when a person was last positively detected
 
 
 ##### physical loop #####
@@ -161,7 +163,7 @@ def _physical_loop():  # central function that runs robot in real life
 
     global IS_COMPLETE, IS_NEUTRAL, CURRENT_LEG  # declare as global as these will be edited by function
     global PERSON_DETECTED_STREAK, PERSON_ABSENT_STREAK
-    global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME
+    global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME, PERSON_LAST_DETECTED_TIME
     mjpeg_buffer = b''  # initialize buffer for MJPEG frames
 
     ##### run robotic logic #####
@@ -195,29 +197,28 @@ def _physical_loop():  # central function that runs robot in real life
             now = time.time()
 
             if person_detected:
-                forward(10)
+                PERSON_DETECTED_STREAK += 1
+                PERSON_ABSENT_STREAK = 0
+                PERSON_LAST_DETECTED_TIME = now
             else:
-                stop_all()
-
-            #if person_detected:
-            #    PERSON_DETECTED_STREAK += 1
-            #    PERSON_ABSENT_STREAK = 0
-            #else:
-            #    PERSON_ABSENT_STREAK += 1
-            #    PERSON_DETECTED_STREAK = 0
+                PERSON_ABSENT_STREAK += 1
+                PERSON_DETECTED_STREAK = 0
 
             # transition STOP -> MOVE
-            #if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
-            #    forward(10)  # start moving at max intensity
-            #    PERSON_STATE_MOVING = True
-            #    PERSON_LAST_STATE_CHANGE_TIME = now
+            if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
+                #run_back_motors(10)  # test rear motors on person detection
+                forward(10)
+                PERSON_STATE_MOVING = True
+                PERSON_LAST_STATE_CHANGE_TIME = now
 
             # transition MOVE -> STOP (with a minimum move hold time)
-            #elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
-            #    if (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS:
-            #        stop_all()
-            #        PERSON_STATE_MOVING = False
-            #        PERSON_LAST_STATE_CHANGE_TIME = now
+            elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
+                enough_move_time = (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS
+                absent_hold_elapsed = (now - PERSON_LAST_DETECTED_TIME) >= PERSON_ABSENT_HOLD_SECONDS
+                if enough_move_time and absent_hold_elapsed:
+                    stop_all()
+                    PERSON_STATE_MOVING = False
+                    PERSON_LAST_STATE_CHANGE_TIME = now
 
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)

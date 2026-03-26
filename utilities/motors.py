@@ -54,7 +54,7 @@ MOTOR_NAME_INDEX = {}
 # ensure pigpio daemon is running: sudo pigpiod
 def initialize_motor_controllers():
 
-    global PI
+    global PI, MOTOR_NAME_INDEX
 
     logging.debug("(motors.py): Initializing motor controllers...\n")
 
@@ -265,6 +265,24 @@ def move_motor(motor_name, direction, intensity):
 
     speed = intensity_to_speed(intensity_val)
     set_motor(motor_cfg['controller_key'], motor_cfg['channel'], electrical_dir, speed)
+
+
+########## MOTOR GROUP TEST FUNCTIONS ##########
+
+##### test front motors #####
+
+def run_front_motors(intensity): # helper function to run only front motors for wiring/debug tests
+
+    move_motor('FL', 'counterclockwise', intensity)
+    move_motor('FR', 'clockwise', intensity)
+
+
+##### test rear motors #####
+
+def run_back_motors(intensity): # helper function to run only back motors for wiring/debug tests
+
+    move_motor('BL', 'counterclockwise', intensity)
+    move_motor('BR', 'clockwise', intensity)
 
 
 ########## STOP ALL MOTORS ##########

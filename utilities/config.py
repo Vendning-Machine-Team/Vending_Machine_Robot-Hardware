@@ -100,7 +100,7 @@ MAESTRO_CONFIG = {
 }
 
 ##### dc motor controller configuration #####
-#
+
 # pin mapping (BCM):
 # 11     GPIO 17  FRONT LEFT     A_IN1
 # 13     GPIO 27  FRONT LEFT     A_IN2
