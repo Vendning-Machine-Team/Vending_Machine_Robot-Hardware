@@ -80,16 +80,15 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     if CAMERA_PROCESS is None:
         logging.error("(control_logic.py): Failed to initialize CAMERA_PROCESS for robot!\n")
 
-    ##### initialize socket and command queue #####
+    ##### initialize socket and codes queue #####
 
-    # Testing: no backend connection; command queue logic still used when commands are added elsewhere
-    # if config.CONTROL_MODE == 'web':  # if web control mode and robot needs a socket connection for controls and video...
-    #     SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
-    #     COMMAND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize command queue for socket communication
-    #     if SOCK is None:
-    #         logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
-    #     if COMMAND_QUEUE is None:
-    #         logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
+    if config.CONTROL_MODE == 'web':  # if web control mode and robot needs a socket connection for controls and video...
+         SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
+         COMMAND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize codes queue for socket communication
+         if SOCK is None:
+             logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
+         if COMMAND_QUEUE is None:
+             logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
     if config.CONTROL_MODE == 'web':
         COMMAND_QUEUE = queue.Queue()  # empty queue for testing; no backend connection
 
@@ -193,7 +192,6 @@ def _physical_loop():  # central function that runs robot in real life
             )
 
             # TODO AI/Pathfinding team can create behaviors here
-            #  debounce binary detection to avoid start/stop motor chattering
             now = time.time()
 
             if person_detected:
@@ -224,24 +222,24 @@ def _physical_loop():  # central function that runs robot in real life
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
 
-            command = None  # initially no command
+            codes = None  # initially no codes
 
             if config.CONTROL_MODE == 'web':  # if web control enabled...
-                if COMMAND_QUEUE is not None and not COMMAND_QUEUE.empty():  # if command queue is not empty...
-                    command = COMMAND_QUEUE.get()  # get command from queue
-                    if command is not None:
-                        if IS_COMPLETE:  # if movement is complete, run command
-                            logging.info(f"(control_logic.py): Received command '{command}' from queue (WILL RUN).\n")
+                if COMMAND_QUEUE is not None and not COMMAND_QUEUE.empty():  # if codes queue is not empty...
+                    codes = COMMAND_QUEUE.get()  # get codes from queue
+                    if codes is not None:
+                        if IS_COMPLETE:  # if movement is complete, run codes
+                            logging.info(f"(control_logic.py): Received codes '{codes}' from queue (WILL RUN).\n")
                         else:
-                            logging.info(f"(control_logic.py): Received command '{command}' from queue (BLOCKED).\n")
+                            logging.info(f"(control_logic.py): Received codes '{codes}' from queue (BLOCKED).\n")
 
-            if command and IS_COMPLETE:  # if command present and movement complete...
-                # logging.debug(f"(control_logic.py): Running command: {command}...\n")
-                threading.Thread(target=_handle_command, args=(command, inference_frame), daemon=True).start()
+            if codes and IS_COMPLETE:  # if codes present and movement complete...
+                # logging.debug(f"(control_logic.py): Running codes: {codes}...\n")
+                threading.Thread(target=_handle_command, args=(codes), daemon=True).start()
 
-            elif not command and IS_COMPLETE and not IS_NEUTRAL:  # if no command and move complete and not neutral...
-                logging.debug(f"(control_logic.py): No command received, returning to neutral position...\n")
-                threading.Thread(target=_handle_command, args=('n', inference_frame), daemon=True).start()
+            elif not codes and IS_COMPLETE and not IS_NEUTRAL:  # if no codes and move complete and not neutral...
+                logging.debug(f"(control_logic.py): No codes received.\n")
+                threading.Thread(target=_handle_command, args=('n'), daemon=True).start()
 
     except KeyboardInterrupt:  # if user ends program...
         logging.info("(control_logic.py): KeyboardInterrupt received, exiting.\n")
@@ -258,39 +256,33 @@ def _physical_loop():  # central function that runs robot in real life
 
 ########## HANDLE COMMANDS ##########
 
-def _handle_command(command, camera_frames=None):
-    # logging.debug(f"(control_logic.py): Threading command: {command}...\n")
+def _handle_command(codes):
+    # logging.debug(f"(control_logic.py): Threading codes: {codes}...\n")
 
-    global IS_COMPLETE, IS_NEUTRAL, CURRENT_LEG
+    global IS_COMPLETE, IS_NEUTRAL
     IS_COMPLETE = False  # block new commands until movement is complete
 
-    if isinstance(command, str):
-        if '+' in command:
-            keys = command.split('+')
-        elif command == 'n':
-            keys = []
+    if isinstance(codes, str):
+        if '+' in codes:
+            commands = codes.split('+')
+        elif codes == 'n':
+            commands = []
         else:
-            keys = [command]
-    elif isinstance(command, (list, tuple)):
-        keys = list(command)
-    elif isinstance(command, dict):
-        keys = []  # not used for radio mode
+            commands = [codes]
+    elif isinstance(codes, (list, tuple)):
+        commands = list(codes)
+    elif isinstance(codes, dict):
+        commands = []  # not used for radio mode
     else:
-        keys = []
+        commands = []
 
     if config.CONTROL_MODE == 'web':
-
-        intensity = 10
-
         try:
-            IS_NEUTRAL, CURRENT_LEG = _execute_keyboard_commands(
-                keys,
-                camera_frames,
-                IS_NEUTRAL,
-                CURRENT_LEG,
-                intensity
+            IS_NEUTRAL = _execute_commands(
+                commands,
+                IS_NEUTRAL
             )
-            # logging.info(f"(control_logic.py): Executed keyboard command: {keys}\n")
+            # logging.info(f"(control_logic.py): Executed keyboard codes: {commands}\n")
             IS_COMPLETE = True
         except Exception as e:
             logging.error(f"(control_logic.py): Failed to execute keyboard command: {e}\n")
@@ -326,49 +318,49 @@ def _convert_direction_parts_to_fixed_list(direction_parts):
     return fixed_direction
 
 
-########## KEYBOARD COMMANDS ##########
+########## COMMANDS FROM BACKEND ##########
 
-def _execute_keyboard_commands(keys, camera_frames, is_neutral, current_leg, intensity):
+def _execute_commands(commands, is_neutral):
 
     ##### set variables #####
 
     global IMAGELESS_GAIT # set IMAGELESS_GAIT as global to switch between modes via button press
     direction_parts = [] # diretion part list
 
-    ##### handle special toggle keys #####
+    ##### handle special toggle commands #####
 
-    if 'i' in keys:  # if user wishes to enable/disable imageless gait...
+    if 'i' in commands:  # if user wishes to enable/disable imageless gait...
         IMAGELESS_GAIT = not IMAGELESS_GAIT  # toggle imageless gait mode
         logging.warning(f"(control_logic.py): Toggled IMAGELESS_GAIT to {IMAGELESS_GAIT}\n")
-        keys = [k for k in keys if k != 'i']  # remove 'i' from the keys list
+        commands = [k for k in commands if k != 'i']  # remove 'i' from the commands list
 
-    ##### cancel out contradictory keys #####
+    ##### cancel out contradictory commands #####
 
-    if 'w' in keys and 's' in keys:
-        keys = [k for k in keys if k not in ['w', 's']]
-    if 'a' in keys and 'd' in keys:
-        keys = [k for k in keys if k not in ['a', 'd']]
-    if 'arrowleft' in keys and 'arrowright' in keys:
-        keys = [k for k in keys if k not in ['arrowleft', 'arrowright']]
-    if 'arrowup' in keys and 'arrowdown' in keys:
-        keys = [k for k in keys if k not in ['arrowup', 'arrowdown']]
+    if 'w' in commands and 's' in commands:
+        commands = [k for k in commands if k not in ['w', 's']]
+    if 'a' in commands and 'd' in commands:
+        commands = [k for k in commands if k not in ['a', 'd']]
+    if 'arrowleft' in commands and 'arrowright' in commands:
+        commands = [k for k in commands if k not in ['arrowleft', 'arrowright']]
+    if 'arrowup' in commands and 'arrowdown' in commands:
+        commands = [k for k in commands if k not in ['arrowup', 'arrowdown']]
 
     ##### WASD and diagonals #####
 
-    move_forward = 'w' in keys
-    move_backward = 's' in keys
-    shift_left = 'a' in keys
-    shift_right = 'd' in keys
+    move_forward = 'w' in commands
+    move_backward = 's' in commands
+    shift_left = 'a' in commands
+    shift_right = 'd' in commands
 
     ##### rotation #####
 
-    rotate_left = 'arrowleft' in keys
-    rotate_right = 'arrowright' in keys
+    rotate_left = 'arrowleft' in commands
+    rotate_right = 'arrowright' in commands
 
     ##### tilt #####
 
-    tilt_up = 'arrowup' in keys
-    tilt_down = 'arrowdown' in keys
+    tilt_up = 'arrowup' in commands
+    tilt_down = 'arrowdown' in commands
 
     ##### handle diagonals #####
 
@@ -411,16 +403,16 @@ def _execute_keyboard_commands(keys, camera_frames, is_neutral, current_leg, int
     direction = None
     if direction_parts:
         direction = _convert_direction_parts_to_fixed_list(direction_parts)
-    if 'n' in keys or not keys:
+    if 'n' in commands or not commands:
         # neutral_position(10) # TODO set vending machine idle equivalent here
         is_neutral = True
     elif direction:
         # move_direction(direction, camera_frames, intensity, IMAGELESS_GAIT) # TODO set vending machine movement equivalent here
         is_neutral = False
     else:
-        logging.warning(f"(control_logic.py): Invalid command: {keys}.\n")
+        logging.warning(f"(control_logic.py): Invalid command: {commands}.\n")
 
-    return is_neutral, current_leg
+    return is_neutral
 
 
 ########## MISCELLANEOUS CONTROL FUNCTIONS ##########

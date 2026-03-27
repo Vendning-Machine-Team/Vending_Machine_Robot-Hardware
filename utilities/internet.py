@@ -23,7 +23,7 @@ import os  # import os for file operations
 import socket  # import socket for Unix socket communication
 import logging  # import logging for debugging
 import threading  # import threading for concurrent operations
-from queue import Queue  # import Queue for command queue management
+from queue import Queue  # import Queue for codes queue management
 
 ##### import config #####
 
@@ -106,22 +106,22 @@ def stream_to_backend(socket_param, frame_data): # function to send frame data t
 
 ########## INITIALIZE COMMAND QUEUE ##########
 
-def initialize_command_queue(local_sock): # function to create a command queue for receiving commands from backend
+def initialize_command_queue(local_sock): # function to create a codes queue for receiving commands from backend
 
-    logging.debug("(internet.py): Initializing command queue...\n") # log initialization of command queue
+    logging.debug("(internet.py): Initializing codes queue...\n") # log initialization of codes queue
 
     if local_sock is None:
-        logging.error("(internet.py): No website backend socket—command queue not started.\n")
+        logging.error("(internet.py): No website backend socket—codes queue not started.\n")
         return None
 
     try:
-        command_queue = Queue() # create a new command queue
+        command_queue = Queue() # create a new codes queue
         threading.Thread(target=listen_for_commands, args=(local_sock, command_queue), daemon=True).start()
         logging.info("(internet.py): Command queue initialized successfully.\n")
-        return command_queue # return the command queue for further processing
+        return command_queue # return the codes queue for further processing
 
     except Exception as e:
-        logging.error(f"(internet.py): Failed to initialize command queue: {e}\n")
+        logging.error(f"(internet.py): Failed to initialize codes queue: {e}\n")
         return None
 
 
@@ -141,16 +141,16 @@ def listen_for_commands(local_sock, command_queue):
             while len(command_bytes) < length:
                 chunk = local_sock.recv(length - len(command_bytes))
                 if not chunk:
-                    logging.warning("(internet.py): Socket closed while reading command. Exiting thread.\n")
+                    logging.warning("(internet.py): Socket closed while reading codes. Exiting thread.\n")
                     break
                 command_bytes += chunk
             if len(command_bytes) < length:
                 break
             command = command_bytes.decode()
             command_queue.put(command)
-            logging.debug(f"(internet.py): Received command: {command}\n")
+            logging.debug(f"(internet.py): Received codes: {command}\n")
         except Exception as e:
-            logging.error(f"(internet.py): Error receiving command from website backend: {e}\n")
+            logging.error(f"(internet.py): Error receiving codes from website backend: {e}\n")
             break
         finally:
             logging.warning("(internet.py): Encountering thread issues (thread exiting)!\n")
