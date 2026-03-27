@@ -161,7 +161,7 @@ MOTOR_CONFIG = {
 
 INTERNET_CONFIG = {
     'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
-    'BACKEND_PUBLIC_IP': "172.31.79.109", # public IP address of backend
+    'BACKEND_PUBLIC_IP': "50.16.116.170", # public IP address of backend
     'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
     'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
 }
