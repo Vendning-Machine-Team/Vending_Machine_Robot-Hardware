@@ -118,3 +118,9 @@ def map_radian_to_servo_speed(radian_speed): # function to map radian speed to s
     logging.debug(f"(servos.py): Radian speed {radian_speed:.3f} rad/s -> Servo speed {servo_speed}\n")
     
     return servo_speed
+
+def person_detection_servo_speed(): # function to return servo speed for person detection
+
+    ##### return servo speed for person detection #####
+
+    return 500 # return a moderate speed for person detection scanning
