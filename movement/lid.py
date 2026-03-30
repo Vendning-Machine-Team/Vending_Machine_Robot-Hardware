@@ -52,3 +52,31 @@ def open_lid():
         logging.error(f"(lid.py): did work chud: {e}\n")
         return False
 
+def close_lid():
+    
+    logging.info("(lid.py): close lid\n")
+
+    try:
+        set_target(
+            channel=LID_CONFIG['CHANNEL'],
+            target=LID_CONFIG['CLOSED_POSITION'],
+            speed=LID_CONFIG['SPEED'],
+            acceleration=LID_CONFIG['ACCELERATION']
+        )
+
+        # calculate approximate movement time for blocking ?
+        # this is a rough estimate - adjust based on actual servo behavior
+        movement_range = abs(LID_CONFIG['CLOSED_POSITION'] - LID_CONFIG['OPEN_POSITION'])
+
+        if LID_CONFIG['SPEED'] > 0:
+            # use time to move from closed to open as a baseline
+            pass
+        else:
+            time.sleep(0.5)  # default wait if unlimited speed
+
+        logging.info("(lid.py): Lid closed successfully.\n")
+        return True
+
+    except Exception as e:
+        logging.error(f"(lid.py): did work chud: {e}\n")
+        return False
