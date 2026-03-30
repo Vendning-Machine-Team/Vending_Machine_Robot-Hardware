@@ -51,3 +51,4 @@ def open_lid():
     except Exception as e:
         logging.error(f"(lid.py): did work chud: {e}\n")
         return False
+
