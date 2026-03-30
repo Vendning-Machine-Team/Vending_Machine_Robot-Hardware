@@ -99,6 +99,16 @@ MAESTRO_CONFIG = {
     'SERIAL_TIMEOUT': 1 # set timeout for serial connection
 }
 
+##### lid servo configuration #####
+
+LID_CONFIG = {
+    'CHANNEL': 0, # maestro channel for lid servo (change as needed)
+    'CLOSED_POSITION': 1000, # PWM microseconds for closed position
+    'OPEN_POSITION': 2000, # PWM microseconds for open position
+    'SPEED': 100, # servo speed (0-16383, 0 = unlimited)
+    'ACCELERATION': 50 # servo acceleration (0-255, 0 = unlimited)
+}
+
 ##### dc motor controller configuration #####
 
 # pin mapping (BCM):
