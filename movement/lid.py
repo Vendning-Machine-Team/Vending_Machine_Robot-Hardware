@@ -191,39 +191,6 @@ def unlock_lid_position():
         return False
 
 
-# dispense sequence
-
-def dispense_item():
-    """
-    Complete dispense sequence: unlock -> open -> wait -> close -> lock.
-    Returns True if successful, False otherwise.
-    """
-
-    logging.info("(lid.py): Starting dispense sequence chud...\n")
-
-    try:
-        # step 1: open the lid
-        if not open_lid():
-            logging.error("(lid.py): Dispense failed - could not open lid chud.\n")
-            return False
-
-        # step 2: hold open for item to be dispensed
-        logging.info("(lid.py): Lid open, waiting for item dispense chud...\n")
-        time.sleep(2.0)  # adjust timing based on dispense mechanism
-
-        # step 3: close the lid
-        if not close_lid():
-            logging.error("(lid.py): Dispense failed - could not close lid chud.\n")
-            return False
-
-        logging.info("(lid.py): Dispense sequence completed successfully chud.\n")
-        return True
-
-    except Exception as e:
-        logging.error(f"(lid.py): Dispense sequence failed chud: {e}\n")
-        return False
-
-
 # emergency stop (in case of unexpected issues during lid movement or hand detection)
 # ask hardware team if the camera can see the hand during the lid movement, if so we can implement an emergency stop that halts all lid movement immediately if a hand is detected in the camera feed during lid operation
 
