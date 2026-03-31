@@ -224,7 +224,8 @@ def dispense_item():
         return False
 
 
-# emergency stop
+# emergency stop (in case of unexpected issues during lid movement or hand detection)
+# ask hardware team if the camera can see the hand during the lid movement, if so we can implement an emergency stop that halts all lid movement immediately if a hand is detected in the camera feed during lid operation
 
 def emergency_stop_lid():
     """
