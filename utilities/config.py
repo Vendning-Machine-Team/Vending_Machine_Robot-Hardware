@@ -101,12 +101,27 @@ MAESTRO_CONFIG = {
 
 ##### lid servo configuration #####
 
+# Maestro servo speed units: (0.25 μs)/(10 ms)
+# Speed = 200 means: 200 * 0.25 μs per 10ms = 50 μs per 10ms = 5,000 μs per second
+# Example: moving 1000 μs at speed 200 takes ~200ms (plus acceleration time)
+# Max speed = 16383 means: 16383 * 0.25 μs per 10ms = 4095.75 μs per 10ms = 409,575 μs per second (limited by physical servo)
+
 LID_CONFIG = {
     'CHANNEL': 0, # maestro channel for lid servo (change as needed)
     'CLOSED_POSITION': 1000, # PWM microseconds for closed position
     'OPEN_POSITION': 2000, # PWM microseconds for open position
-    'SPEED': 100, # servo speed (0-16383, 0 = unlimited)
-    'ACCELERATION': 50 # servo acceleration (0-255, 0 = unlimited)
+    'SPEED': 200, # servo speed: 5,000 μs/s max rate (0-16383, 0 = unlimited)
+    'ACCELERATION': 250 # servo acceleration: max = 250 (0-255, 0 = unlimited)
+}
+
+##### lid lock servo configuration #####
+
+LID_LOCK_CONFIG = {
+    'CHANNEL': 1, # maestro channel for lid lock servo (change as needed)
+    'LOCKED_POSITION': 1500, # PWM microseconds for locked position
+    'UNLOCKED_POSITION': 1000, # PWM microseconds for unlocked position
+    'SPEED': 200, # servo speed: 5,000 μs/s max rate
+    'ACCELERATION': 250 # servo acceleration: max = 250
 }
 
 ##### dc motor controller configuration #####
