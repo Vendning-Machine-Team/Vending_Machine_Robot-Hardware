@@ -334,6 +334,28 @@ def _execute_commands(commands, is_neutral):
         logging.warning(f"(control_logic.py): Toggled IMAGELESS_GAIT to {IMAGELESS_GAIT}\n")
         commands = [k for k in commands if k != 'i']  # remove 'i' from the commands list
 
+    ##### handle lid control commands #####
+
+    if 'o' in commands:  # 'o' for open lid
+        from movement.lid import open_lid
+        open_lid()
+        commands = [k for k in commands if k != 'o']
+
+    if 'c' in commands:  # 'c' for close lid
+        from movement.lid import close_lid
+        close_lid()
+        commands = [k for k in commands if k != 'c']
+
+    if 'locklid' in commands:  # 'lockid' to manually lock
+        from movement.lid import lock_lid_position
+        lock_lid_position()
+        commands = [k for k in commands if k != 'lockid']
+
+    if 'unlockid' in commands:  # 'unlockid' to manually unlock
+        from movement.lid import unlock_lid_position
+        unlock_lid_position()
+        commands = [k for k in commands if k != 'unlockid']
+
     ##### cancel out contradictory commands #####
 
     if 'w' in commands and 's' in commands:
