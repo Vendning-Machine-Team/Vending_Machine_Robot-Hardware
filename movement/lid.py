@@ -110,3 +110,9 @@ def unlock_lid_position():
     except Exception as e:
         logging.error(f"(lid.py): did work chud: {e}\n")
         return False
+    
+def get_position():
+    # we need to get the position of it by checking for the degrees of the motor
+
+    position = None
+    return position
