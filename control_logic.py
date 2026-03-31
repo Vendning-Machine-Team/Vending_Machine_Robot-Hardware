@@ -346,11 +346,6 @@ def _execute_commands(commands, is_neutral):
         close_lid()
         commands = [k for k in commands if k != 'c']
 
-    if 'dispense' in commands:  # 'dispense' for full dispense sequence
-        from movement.lid import dispense_item
-        dispense_item()
-        commands = [k for k in commands if k != 'dispense']
-
     if 'locklid' in commands:  # 'lockid' to manually lock
         from movement.lid import lock_lid_position
         lock_lid_position()
