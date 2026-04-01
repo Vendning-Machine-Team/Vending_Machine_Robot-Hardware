@@ -69,6 +69,18 @@ CAMERA_CONFIG = {
 }
 
 
+########## INTERNET CONFIGURATIONS ##########
+
+##### set internet connectivity configuration #####
+
+INTERNET_CONFIG = {
+    'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
+    'BACKEND_PUBLIC_IP': "50.16.116.170", # public IP address of backend
+    'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
+    'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
+}
+
+
 ########## INFERENCE CONFIGURATIONS ##########
 
 ##### set ML configurations #####
@@ -94,6 +106,14 @@ SIGNAL_TUNING_CONFIG = { # dictionary of signal tuning configuration for sensiti
 ##### set receiver configuration #####
 
 MAESTRO_CONFIG = {
+    'SERIAL_PATH': "/dev/serial0", # set serial port name to first available
+    'SERIAL_BAUD_RATE': 9600, # set baud rate for serial connection
+    'SERIAL_TIMEOUT': 1 # set timeout for serial connection
+}
+
+##### set GPS configuration #####
+
+GPS_CONFIG = { # TODO change serial settings for GPS
     'SERIAL_PATH': "/dev/serial0", # set serial port name to first available
     'SERIAL_BAUD_RATE': 9600, # set baud rate for serial connection
     'SERIAL_TIMEOUT': 1 # set timeout for serial connection
@@ -182,11 +202,12 @@ MOTOR_CONFIG = {
     },
 }
 
-##### set internet connectivity configuration #####
+##### servo configuration #####
 
-INTERNET_CONFIG = {
-    'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
-    'BACKEND_PUBLIC_IP': "50.16.116.170", # public IP address of backend
-    'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
-    'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
+SERVO_CONFIG = { # dictionary of servo configurations TODO calibrate servo positions
+
+    'LID': {'left_hinge': {'servo': 0, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0},
+            'right_hinge': {'servo': 1, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}},
+
+    'LOCK': {'lock': {'servo': 3, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}}
 }
