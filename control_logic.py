@@ -71,7 +71,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     ##### initialize global variables #####
 
-    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, internet
+    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP
     global DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER
 
     ##### initialize camera process #####
