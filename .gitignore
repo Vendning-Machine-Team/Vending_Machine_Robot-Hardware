@@ -1,3 +1,9 @@
+# ignore ai slop
+CLAUDE.md
+
+# ignore ide settings
+.vscode/ 
+
 # ignore pycache
 __pycache__/
 *.pyc
@@ -10,9 +16,6 @@ venv/
 
 # ignore os files
 .DS_Store
-
-# ignore service files
-*.service
 
 # ignore config
 utilities/config.py
@@ -31,3 +34,4 @@ backend_and_frontend/
 vending_machine.log
 vending_machine.log.bak
 vending_machine.service.d
+
