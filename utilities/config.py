@@ -113,10 +113,14 @@ MAESTRO_CONFIG = {
 
 ##### set GPS configuration #####
 
-GPS_CONFIG = { # TODO change serial settings for GPS
-    'SERIAL_PATH': "/dev/serial0", # set serial port name to first available
-    'SERIAL_BAUD_RATE': 9600, # set baud rate for serial connection
-    'SERIAL_TIMEOUT': 1 # set timeout for serial connection
+# GPS uses a *second* UART from dtoverlay (not /dev/serial0 — that is Maestro on GPIO 14/15).
+# UART3 -> GPIO 4/5 conflicts with RIGHT_DCMC 'A_IN1' (GPIO 5). Prefer uart4 -> GPIO 8/9, or
+# rewire BR A_IN1 to a free GPIO and change MOTOR_CONFIG if you use uart3.
+# After boot: run `ls /dev/ttyAMA*` and set SERIAL_PATH to the new UART (often ttyAMA2+).
+GPS_CONFIG = {
+    'SERIAL_PATH': "/dev/ttyAMA2",
+    'SERIAL_BAUD_RATE': 9600,
+    'SERIAL_TIMEOUT': 1
 }
 
 ##### lid servo configuration #####
