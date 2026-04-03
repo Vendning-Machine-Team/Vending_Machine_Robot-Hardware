@@ -55,7 +55,11 @@ DETECTION_OUTPUT_LAYER = None
 from movement.mecanum import *
 from utilities.motors import initialize_motor_controllers, stop_all, run_back_motors
 
-atexit.register(stop_all)
+#atexit.register(stop_all)
+
+##### import GPS functions #####
+
+from utilities.gps import *
 
 
 ########## PREPARE ROBOT ##########
@@ -68,11 +72,10 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     from utilities.camera import initialize_camera  # import to start camera logic
     import utilities.internet as internet  # dynamically import internet utilities to be constantly updated
-    from utilities.gps import *  # import GPS initialization functions
 
     ##### initialize global variables #####
 
-    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP
+    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, GPS
     global DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER
 
     ##### initialize camera process #####
