@@ -1,11 +1,16 @@
+[Unit]
+Description=Vending Machine Robot Control Service
+After=network-online.target
+Wants=network-online.target
+
 [Service]
 # Optional cleanup — don't fail if these pkill commands find nothing
 ExecStartPre=-/usr/bin/pkill -f 'control_logic.py'
 ExecStartPre=-/usr/bin/pkill -9 -f 'rpicam-jpeg|rpicam-vid|libcamera'
 
 # Optional cleanup — release Maestro (/dev/serial0) and any GPS UART (/dev/ttyAMA*); skip missing nodes
-ExecStartPre=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
-ExecStopPost=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
+ExecStartPre=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3 /dev/ttyAMA4; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
+ExecStopPost=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3 /dev/ttyAMA4; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
 
 ExecStart=
 ExecStart=/home/matthewthomasbeck/.virtualenvs/openvino/bin/python /home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/control_logic.py
@@ -13,3 +18,9 @@ ExecStart=/home/matthewthomasbeck/.virtualenvs/openvino/bin/python /home/matthew
 Environment=VIRTUAL_ENV=/home/matthewthomasbeck/.virtualenvs/openvino
 Environment=PYTHONPATH=/opt/intel/openvino/python/python3.9:/opt/intel/openvino/python/python3
 Environment=LD_LIBRARY_PATH=/opt/intel/openvino/tools/compile_tool:/opt/intel/openvino/runtime/3rdparty/hddl/lib:/opt/intel/openvino/runtime/lib/aarch64
+
+# Service management
+Restart=always
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=30
