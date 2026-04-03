@@ -131,7 +131,8 @@ GPS_CONFIG = {
 # Max speed = 16383 means: 16383 * 0.25 μs per 10ms = 4095.75 μs per 10ms = 409,575 μs per second (limited by physical servo)
 
 LID_CONFIG = {
-    'CHANNEL': 0, # maestro channel for lid servo (change as needed)
+    'LEFT_HINGE_CHANNEL': 0, # maestro channel for lid servo (change as needed)
+    'RIGHT_HINGE_CHANNEL': 1, # maestro channel for lid servo (change as needed)
     'CLOSED_POSITION': 1000, # PWM microseconds for closed position
     'OPEN_POSITION': 2000, # PWM microseconds for open position
     'SPEED': 200, # servo speed: 5,000 μs/s max rate (0-16383, 0 = unlimited)
