@@ -68,6 +68,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     from utilities.camera import initialize_camera  # import to start camera logic
     import utilities.internet as internet  # dynamically import internet utilities to be constantly updated
+    from utilities.gps import initialize_gps  # import GPS initialization functions
 
     ##### initialize global variables #####
 
@@ -108,6 +109,15 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     ##### initialize motors #####
 
     initialize_motor_controllers()
+
+    ##### initialize GPS #####
+
+    GPS = initialize_gps()  # initialize GPS connection
+    
+    if GPS is None:
+        logging.warning("(control_logic.py): Failed to initialize GPS for robot!\n")
+    else:
+        logging.info("(control_logic.py): Successfully initialized GPS for robot.\n")
 
 
 ########## PREPARE ROBOT ##########
