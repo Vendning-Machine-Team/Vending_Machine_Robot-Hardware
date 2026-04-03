@@ -43,8 +43,15 @@ def open_lid():
 
         # step 2: move lid to open position
         set_target(
-            channel=LID_CONFIG['CHANNEL'],
-            target=LID_CONFIG['OPEN_POSITION'],
+            channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
+            target=LID_CONFIG['OPEN_POSITION_LEFT'],
+            speed=LID_CONFIG['SPEED'],
+            acceleration=LID_CONFIG['ACCELERATION']
+        )
+
+        set_target(
+            channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
+            target=LID_CONFIG['OPEN_POSITION_RIGHT'],
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
@@ -84,8 +91,15 @@ def close_lid():
     try:
         # step 1: move lid to closed position
         set_target(
-            channel=LID_CONFIG['CHANNEL'],
-            target=LID_CONFIG['CLOSED_POSITION'],
+            channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
+            target=LID_CONFIG['CLOSED_POSITION_LEFT'],
+            speed=LID_CONFIG['SPEED'],
+            acceleration=LID_CONFIG['ACCELERATION']
+        )
+
+        set_target(
+            channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
+            target=LID_CONFIG['CLOSED_POSITION_RIGHT'],
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
