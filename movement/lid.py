@@ -40,7 +40,7 @@ from utilities.servos import set_target
 
 ##### open close cycle #####
 
-def open_close_cycle(): # unlock lide, wait 2 seconds, open, wait 15 seconds, close, wait 2 seconds, lock
+def open_close_cycle(): # unlock lid, wait 2 seconds, open, wait 15 seconds, close, wait 2 seconds, lock lid
 
     unlock_lid_position()
     time.sleep(2)
@@ -56,10 +56,6 @@ def open_close_cycle(): # unlock lide, wait 2 seconds, open, wait 15 seconds, cl
 ##### open lid #####
 
 def open_lid():
-    """
-    Opens the lid by first unlocking, then moving to open position.
-    Returns True if successful, False otherwise.
-    """
 
     global _lid_is_open, _lid_is_locked
 
@@ -98,10 +94,6 @@ def open_lid():
 ##### close lid #####
 
 def close_lid():
-    """
-    Closes the lid by moving to closed position, then locking.
-    Returns True if successful, False otherwise.
-    """
 
     logging.info("(lid.py): Closing lid sequence chud...\n")
 
@@ -151,10 +143,6 @@ def lock_lid_position():
 ##### unlock lid #####
 
 def unlock_lid_position():
-    """
-    Disengages the lid lock mechanism.
-    Returns True if successful, False otherwise.
-    """
 
     global _lid_is_locked
 

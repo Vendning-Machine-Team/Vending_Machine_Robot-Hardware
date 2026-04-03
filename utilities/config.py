@@ -116,9 +116,10 @@ MAESTRO_CONFIG = {
 # GPS uses a *second* UART from dtoverlay (not /dev/serial0 — that is Maestro on GPIO 14/15).
 # UART3 -> GPIO 4/5 conflicts with RIGHT_DCMC 'A_IN1' (GPIO 5). Prefer uart4 -> GPIO 8/9, or
 # rewire BR A_IN1 to a free GPIO and change MOTOR_CONFIG if you use uart3.
-# After boot: run `ls /dev/ttyAMA*` and set SERIAL_PATH to the new UART (often ttyAMA2+).
+# After uart4: run `ls /dev/ttyAMA*` — the GPS UART is usually ttyAMA1 (not ttyAMA0; that may be primary).
+# If only ttyAMA0 exists, uart4 is not enabled (check dtoverlay=uart4 in /boot/firmware/config.txt).
 GPS_CONFIG = {
-    'SERIAL_PATH': "/dev/ttyAMA2",
+    'SERIAL_PATH': "/dev/ttyAMA1",
     'SERIAL_BAUD_RATE': 9600,
     'SERIAL_TIMEOUT': 1
 }

@@ -3,9 +3,9 @@
 ExecStartPre=-/usr/bin/pkill -f 'control_logic.py'
 ExecStartPre=-/usr/bin/pkill -9 -f 'rpicam-jpeg|rpicam-vid|libcamera'
 
-# Optional cleanup — don't fail if nothing is using serial0
-ExecStartPre=-/bin/sh -c '/usr/bin/fuser -k /dev/serial0 || true'
-ExecStopPost=-/bin/sh -c '/usr/bin/fuser -k /dev/serial0 || true'
+# Optional cleanup — release Maestro (/dev/serial0) and any GPS UART (/dev/ttyAMA*); skip missing nodes
+ExecStartPre=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
+ExecStopPost=-/bin/sh -c 'for d in /dev/serial0 /dev/ttyAMA1 /dev/ttyAMA2 /dev/ttyAMA3; do [ -e "$d" ] && /usr/bin/fuser -k "$d" 2>/dev/null || true; done'
 
 ExecStart=
 ExecStart=/home/matthewthomasbeck/.virtualenvs/openvino/bin/python /home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/control_logic.py
