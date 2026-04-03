@@ -113,7 +113,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
     ##### initialize GPS #####
 
     GPS = initialize_gps()  # initialize GPS connection
-    
+
     if GPS is None:
         logging.warning("(control_logic.py): Failed to initialize GPS for robot!\n")
     else:
@@ -205,6 +205,8 @@ def _physical_loop():  # central function that runs robot in real life
             now = time.time()
 
             if person_detected:
+                lat, lon = get_current_coordinates(GPS)
+                logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
                 PERSON_DETECTED_STREAK += 1
                 PERSON_ABSENT_STREAK = 0
                 PERSON_LAST_DETECTED_TIME = now

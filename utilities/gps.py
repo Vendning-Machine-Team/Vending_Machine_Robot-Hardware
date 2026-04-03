@@ -113,6 +113,43 @@ def _attempt_serial_cleanup(serial_path): # function to attempt cleanup of seria
         logging.warning(f"(gps.py): Serial cleanup failed: {e}")
 
 
+########## GET CURRENT COORDINATES ##########
+
+def get_current_coordinates(gps, max_seconds=5): # function to get latest valid GPS fix within a time budget
+
+  ##### attempt to read a valid RMC sentence and return lat/lon #####
+
+  deadline = time.time() + max_seconds # compute time budget
+  last_fix = None # store last parsed result
+
+  while time.time() < deadline: # loop until deadline
+
+      line = read_nmea_line(gps) # read one NMEA line
+
+      if not line:
+          continue # skip empty reads
+
+      fix = parse_gprmc(line) # try to parse GPRMC / GNRMC
+
+      if not fix:
+          continue # skip non-RMC sentences
+
+      last_fix = fix # remember last parsed fix
+
+      if fix.get('valid'): # if fix is valid, return immediately
+          lat = fix.get('latitude')
+          lon = fix.get('longitude')
+
+          return lat, lon # return latitude and longitude
+
+  # if here, no valid fix in time budget; return last parsed (may be None)
+  if last_fix and last_fix.get('latitude') is not None and last_fix.get('longitude') is not None:
+      return last_fix.get('latitude'), last_fix.get('longitude') # return best-effort coordinates
+
+  return None, None # return None if no usable fix
+
+
+
 ########## READ NMEA LINE ##########
 
 def read_nmea_line(gps): # function to read one NMEA sentence line from GPS serial stream
