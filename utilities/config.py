@@ -217,3 +217,9 @@ SERVO_CONFIG = { # dictionary of servo configurations TODO calibrate servo posit
 
     'LOCK': {'lock': {'servo': 3, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}}
 }
+
+SCREEN_CONFIG = {
+    'WIDTH': 800, # width of the screen in pixels
+    'HEIGHT': 480, # height of the screen in pixels
+    'FPS': 30, # frames per second for screen updates
+}
