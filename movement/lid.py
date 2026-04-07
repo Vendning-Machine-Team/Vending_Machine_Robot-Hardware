@@ -150,7 +150,7 @@ def unlock_lid_position():
 
     try:
         set_target(
-            channel=LID_LOCK_CONFIG['CHANNEL'],
+            channel=LID_LOCK_CONFIG['LOCK_CHANNEL'],
             target=LID_LOCK_CONFIG['UNLOCKED_POSITION'],
             speed=LID_LOCK_CONFIG['SPEED'],
             acceleration=LID_LOCK_CONFIG['ACCELERATION']
