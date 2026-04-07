@@ -199,43 +199,44 @@ def _physical_loop():  # central function that runs robot in real life
                 mjpeg_buffer
             )
 
-            person_detected = inference.run_person_detection( # check if person detected
-                DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
-                inference_frame, run_inference=True
-            )
+            # COMMENTED OUT FOR SERVO CALIBRATION - UNCOMMENT TO RE-ENABLE PERSON DETECTION
+            # person_detected = inference.run_person_detection( # check if person detected
+            #     DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
+            #     inference_frame, run_inference=True
+            # )
 
-            # TODO AI/Pathfinding team can create behaviors here
-            now = time.time()
+            # # TODO AI/Pathfinding team can create behaviors here
+            # now = time.time()
 
-            if person_detected:
-                lat, lon = get_current_coordinates(GPS)
-                logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
-                PERSON_DETECTED_STREAK += 1
-                PERSON_ABSENT_STREAK = 0
-                PERSON_LAST_DETECTED_TIME = now
-            else:
-                PERSON_ABSENT_STREAK += 1
-                PERSON_DETECTED_STREAK = 0
+            # if person_detected:
+            #     lat, lon = get_current_coordinates(GPS)
+            #     logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
+            #     PERSON_DETECTED_STREAK += 1
+            #     PERSON_ABSENT_STREAK = 0
+            #     PERSON_LAST_DETECTED_TIME = now
+            # else:
+            #     PERSON_ABSENT_STREAK += 1
+            #     PERSON_DETECTED_STREAK = 0
 
-            # transition STOP -> MOVE
-            if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
-                #run_back_motors(10)  # test rear motors on person detection
-                forward(10)
-                PERSON_STATE_MOVING = True
-                PERSON_LAST_STATE_CHANGE_TIME = now
+            # # transition STOP -> MOVE
+            # if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
+            #     #run_back_motors(10)  # test rear motors on person detection
+            #     forward(10)
+            #     PERSON_STATE_MOVING = True
+            #     PERSON_LAST_STATE_CHANGE_TIME = now
 
-            # transition MOVE -> STOP (with a minimum move hold time)
-            elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
-                enough_move_time = (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS
-                absent_hold_elapsed = (now - PERSON_LAST_DETECTED_TIME) >= PERSON_ABSENT_HOLD_SECONDS
-                if enough_move_time and absent_hold_elapsed:
-                    stop_all()
-                    PERSON_STATE_MOVING = False
-                    PERSON_LAST_STATE_CHANGE_TIME = now
+            # # transition MOVE -> STOP (with a minimum move hold time)
+            # elif PERSON_STATE_MOVING and (PERSON_ABSENT_STREAK >= PERSON_ABSENT_FRAMES_TO_STOP):
+            #     enough_move_time = (now - PERSON_LAST_STATE_CHANGE_TIME) >= PERSON_MIN_MOVE_SECONDS
+            #     absent_hold_elapsed = (now - PERSON_LAST_DETECTED_TIME) >= PERSON_ABSENT_HOLD_SECONDS
+            #     if enough_move_time and absent_hold_elapsed:
+            #         stop_all()
+            #         PERSON_STATE_MOVING = False
+            #         PERSON_LAST_STATE_CHANGE_TIME = now
 
-            if inference_frame is not None:
-                cv2.imshow("SSDLite detection", inference_frame)
-                cv2.waitKey(1)
+            # if inference_frame is not None:
+            #     cv2.imshow("SSDLite detection", inference_frame)
+            #     cv2.waitKey(1)
 
             codes = None  # initially no codes
 
