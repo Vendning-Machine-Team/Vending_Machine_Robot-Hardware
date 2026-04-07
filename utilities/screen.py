@@ -22,7 +22,31 @@
 import logging  # import logging for debugging
 import time  # import time for sleep functions
 import pygame  # import pygame for screen display and input handling
+import os  # import os for file operations
 
 ##### import necessary functions #####
 
-from utilities.config import SCREEN_CONFIG  # import screen configuration from config module
+from utilities.config import SCREEN_CONFIG # import screen configuration from config module
+
+height = SCREEN_CONFIG.HEIGHT
+width = SCREEN_CONFIG.WIDTH
+fps = SCREEN_CONFIG.FPS
+
+########## IMAGES ##########
+
+
+########## PYGAME INITIALIZATION ##########
+
+pygame.init()
+pygame.font.init()
+screen = pygame.display.set_mode((width, height)) #default of 800x480
+
+image_folder = "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/ImageAssets"
+#image_folder = r"C:\Users\srsay\Downloads\Vending_Machine_Robot-Hardware\ImageAssets"
+
+images = []
+for filename in sorted(os.listdir(image_folder)):
+    if filename.endswith(".png") or filename.endswith(".jpg"):
+        img_path = os.path.join(image_folder, filename)
+        img = pygame.image.load(img_path).convert_alpha()  # convert_alpha keeps transparency
+        images.append(img_path)
