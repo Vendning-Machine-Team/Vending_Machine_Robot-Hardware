@@ -335,7 +335,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
 
     if frame is None:
         logging.debug("(inference.py): Frame is None.\n")
-        return False
+        return False, 0, 0  # return no detection and zero box data — caller must unpack all three values
 
     try:
         if not run_inference:
@@ -343,7 +343,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             logging.debug("(inference.py): Not running inference, passing...\n")
             #cv2.imshow("video (standard)", frame)
             #cv2.waitKey(1)
-            return False
+            return False, 0, 0  # inference is disabled — return no detection and zero box data
 
         person_detected = False
 
@@ -355,6 +355,14 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             input_blob = np.expand_dims(input_blob, axis=0).astype(np.float32)
             results = compiled_model([input_blob])[output_layer]
 
+            # initialize largest-box tracking variables before scanning all detections
+            # these will be updated as we loop through every detected person this frame
+            # the largest box corresponds to the closest / most prominent person in view
+            largest_box_area = 0  # running maximum bounding box area (px²) seen this frame
+            target_cx = 0         # horizontal pixel center of the largest box found so far
+
+            logging.debug("(inference.py): Scanning all detections for largest person box...\n")
+
             for detection in results[0][0]:
                 confidence = detection[2]
                 if confidence > 0.5:
@@ -365,6 +373,25 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                             frame.shape[1], frame.shape[0]
                         ]
                     )
+
+                    # compute the area of this detection's bounding box in pixels squared
+                    # area is used as a camera-based distance proxy in control_logic.py —
+                    # the larger the box, the closer the person is to the robot
+                    box_area = (xmax - xmin) * (ymax - ymin)
+
+                    # if this detection is the largest box seen so far this frame,
+                    # update the target values — the robot will approach this person
+                    # and ignore all smaller (farther) detections
+                    if box_area > largest_box_area:
+                        largest_box_area = box_area
+                        target_cx = (xmin + xmax) // 2  # horizontal pixel center of this box
+                        logging.debug(
+                            f"(inference.py): New largest box — "
+                            f"area={box_area}px², center_x={target_cx}px, "
+                            f"confidence={confidence:.2f}, "
+                            f"bbox=({xmin},{ymin},{xmax},{ymax}).\n"
+                        )
+
                     label = f"ID {int(detection[1])}: {confidence:.2f}"
                     cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
                     cv2.putText(
@@ -378,14 +405,22 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                     )
 
             logging.debug("(inference.py): Inference complete.\n")
+            logging.info(
+                f"(inference.py): Frame result — "
+                f"person_detected={person_detected}, "
+                f"largest_box_area={largest_box_area}px², "
+                f"target_cx={target_cx}px.\n"
+            )
             #cv2.imshow("video (inference)", frame)
             #cv2.waitKey(1)
 
         else:
             logging.warning("(inference.py): Inference requested but model is not loaded.\n")
 
-        return person_detected
+        # return all three values so control_logic.py can make both the stop decision
+        # (from largest_box_area) and the steering decision (from target_cx)
+        return person_detected, target_cx, largest_box_area
 
     except Exception as e:
         logging.error(f"(inference.py): Inference error: {e}\n")
-        return False
+        return False, 0, 0  # on any exception return safe defaults — caller always unpacks three values

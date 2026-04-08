@@ -167,6 +167,158 @@ PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
 PERSON_LAST_DETECTED_TIME = 0.0  # tracks when a person was last positively detected
 
 
+##### person approach (drive-toward) variables #####
+
+# the camera frame width in pixels — must match config.CAMERA_CONFIG['WIDTH']
+# used to find the horizontal center of the frame so we know if the person
+# is left, right, or centered relative to the robot's heading
+APPROACH_FRAME_WIDTH = 1152
+
+# bounding box area threshold in pixels squared at which the robot stops approaching
+# the box area from OpenVINO grows as the person gets closer to the camera
+# at 1152x648 resolution: ~300px tall x 150px wide person at ~0.8m = ~45,000 px²
+# increase this value to stop further away, decrease to allow the robot to get closer
+# this is the primary value to tune during field testing
+APPROACH_STOP_AREA = 45000
+
+# horizontal pixel deadband — how far off-center the person must be before
+# the robot starts steering left or right toward them
+# prevents jitter when the person is roughly centered in the frame
+# 92px = approximately 8% of the 1152px frame width on each side of center
+APPROACH_DEADBAND = 92
+
+# motor intensity level used while driving toward a person (scale 1 to 10)
+# this maps directly to a pigpio PWM duty cycle in motors.py via intensity_to_speed()
+# lower values = slower and safer, higher values = faster approach
+APPROACH_INTENSITY = 5
+
+# slowdown zone threshold in pixels squared — when the person's box exceeds this area
+# the robot reduces speed to APPROACH_SLOW_INTENSITY before hitting the full stop threshold
+# this bleeds off momentum so the robot does not coast into the person after stop_all() fires
+# set to 30,000 px² because it is roughly 2/3 of APPROACH_STOP_AREA (45,000 px²), giving
+# the robot enough time and distance to slow down before the hard stop is triggered —
+# this ratio should be kept when retuning APPROACH_STOP_AREA during field testing
+APPROACH_SLOWDOWN_AREA = 30000
+
+# reduced motor intensity used inside the slowdown zone (scale 1 to 10)
+# low enough that the robot has minimal momentum when stop_all() finally fires
+APPROACH_SLOW_INTENSITY = 2
+
+
+########## PERSON APPROACH FUNCTION ##########
+
+##### steer robot toward the largest detected person in the camera frame #####
+
+def approach_largest_person(target_cx, largest_box_area):
+    """
+    Issues a single motor command each frame to steer the robot toward
+    the largest detected person visible in the camera frame.
+
+    This function is called every frame while PERSON_STATE_MOVING is True
+    and a person is currently visible. The existing debounce state machine in
+    _physical_loop() controls WHEN the robot starts and stops moving — this
+    function controls WHERE the robot steers while it is already moving.
+
+    Two values derived from the OpenVINO bounding box drive this logic:
+      - largest_box_area (px²): used as a camera-based distance proxy.
+                                 bigger box = person is closer to the robot.
+      - target_cx (px):         horizontal pixel center of the largest box.
+                                 compared against the frame center to decide
+                                 whether to steer left, right, or go straight.
+
+    Motor functions used (all already imported from mecanum.py / motors.py):
+      - arc_left()  : curves forward-left using mecanum wheel mixing via drive()
+      - arc_right() : curves forward-right using mecanum wheel mixing via drive()
+      - forward()   : drives all four wheels straight forward
+      - stop_all()  : zeros PWM duty on all GPIO motor pins via pigpio
+    """
+
+    # find the horizontal center of the camera frame in pixels
+    # everything left of this point has a negative offset, right has a positive offset
+    frame_center_x = APPROACH_FRAME_WIDTH // 2
+
+    # compute how far left or right the detected person is from the frame center
+    # negative offset = person is left of center  → robot needs to arc left
+    # positive offset = person is right of center → robot needs to arc right
+    # near-zero offset = person is centered       → robot drives straight forward
+    offset = target_cx - frame_center_x
+
+    logging.info(
+        f"(control_logic.py): approach_largest_person called — "
+        f"box_area={largest_box_area}px², "
+        f"target_cx={target_cx}px, "
+        f"frame_center={frame_center_x}px, "
+        f"offset={offset:+d}px.\n"
+    )
+
+    if largest_box_area >= APPROACH_STOP_AREA:
+
+        # the person's bounding box has exceeded the hard stop threshold —
+        # they are close enough to the robot, halt all four motors immediately
+        # stop_all() writes duty cycle 0 to every GPIO motor pin via pigpio
+        stop_all()
+        logging.info(
+            f"(control_logic.py): STOP — person is close enough. "
+            f"box_area={largest_box_area}px² >= APPROACH_STOP_AREA={APPROACH_STOP_AREA}px². "
+            f"All motors stopped.\n"
+        )
+
+    elif largest_box_area >= APPROACH_SLOWDOWN_AREA:
+
+        # the person's box has entered the slowdown zone but not yet hit the hard stop —
+        # reduce intensity to APPROACH_SLOW_INTENSITY so the robot bleeds off speed
+        # and has minimal momentum when stop_all() fires on the next threshold crossing
+        # steering logic (left/right/forward) still applies at the reduced intensity
+        if offset < -APPROACH_DEADBAND:
+            arc_left(forward_strength=1.0, turn_strength=0.4, intensity=APPROACH_SLOW_INTENSITY)
+        elif offset > APPROACH_DEADBAND:
+            arc_right(forward_strength=1.0, turn_strength=0.4, intensity=APPROACH_SLOW_INTENSITY)
+        else:
+            forward(APPROACH_SLOW_INTENSITY)
+        logging.info(
+            f"(control_logic.py): SLOWDOWN — entering stop zone. "
+            f"box_area={largest_box_area}px² >= APPROACH_SLOWDOWN_AREA={APPROACH_SLOWDOWN_AREA}px². "
+            f"Reduced intensity to {APPROACH_SLOW_INTENSITY}, offset={offset:+d}px.\n"
+        )
+
+    elif offset < -APPROACH_DEADBAND:
+
+        # person is to the LEFT of center beyond the deadband —
+        # arc_left() calls drive(x=0, y=forward_strength, r=-turn_strength)
+        # which mixes the four mecanum wheels to curve the robot forward-left
+        # this steers the robot's heading toward the person without stopping forward motion
+        arc_left(forward_strength=1.0, turn_strength=0.4, intensity=APPROACH_INTENSITY)
+        logging.info(
+            f"(control_logic.py): ARC LEFT — person is left of center. "
+            f"offset={offset:+d}px, deadband={APPROACH_DEADBAND}px, "
+            f"intensity={APPROACH_INTENSITY}.\n"
+        )
+
+    elif offset > APPROACH_DEADBAND:
+
+        # person is to the RIGHT of center beyond the deadband —
+        # arc_right() calls drive(x=0, y=forward_strength, r=+turn_strength)
+        # which mixes the four mecanum wheels to curve the robot forward-right
+        arc_right(forward_strength=1.0, turn_strength=0.4, intensity=APPROACH_INTENSITY)
+        logging.info(
+            f"(control_logic.py): ARC RIGHT — person is right of center. "
+            f"offset={offset:+d}px, deadband={APPROACH_DEADBAND}px, "
+            f"intensity={APPROACH_INTENSITY}.\n"
+        )
+
+    else:
+
+        # person is within the deadband of the frame center —
+        # drive all four wheels straight forward at approach intensity
+        # forward() sets FL/BL counterclockwise and FR/BR clockwise via move_motor()
+        forward(APPROACH_INTENSITY)
+        logging.info(
+            f"(control_logic.py): FORWARD — person is centered. "
+            f"offset={offset:+d}px within deadband={APPROACH_DEADBAND}px, "
+            f"intensity={APPROACH_INTENSITY}.\n"
+        )
+
+
 ##### physical loop #####
 
 def _physical_loop():  # central function that runs robot in real life
@@ -199,9 +351,20 @@ def _physical_loop():  # central function that runs robot in real life
                 mjpeg_buffer
             )
 
-            person_detected = inference.run_person_detection( # check if person detected
+            # run person detection on the current decoded camera frame via OpenVINO + Myriad VPU
+            # returns three values:
+            #   person_detected  — True if at least one person is above 0.5 confidence
+            #   target_cx        — horizontal pixel center of the largest detected person box
+            #   largest_box_area — area (px²) of the largest box, used as a distance proxy
+            person_detected, target_cx, largest_box_area = inference.run_person_detection(
                 DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
                 inference_frame, run_inference=True
+            )
+            logging.debug(
+                f"(control_logic.py): Inference unpacked — "
+                f"person_detected={person_detected}, "
+                f"target_cx={target_cx}px, "
+                f"largest_box_area={largest_box_area}px².\n"
             )
 
             # TODO AI/Pathfinding team can create behaviors here
@@ -232,6 +395,20 @@ def _physical_loop():  # central function that runs robot in real life
                     stop_all()
                     PERSON_STATE_MOVING = False
                     PERSON_LAST_STATE_CHANGE_TIME = now
+
+            # continuous approach steering — runs every frame while the robot is actively
+            # moving AND a person is currently visible in the camera frame
+            # the debounce state machine above decides WHEN to start or stop moving
+            # this block decides WHERE to steer (left, right, forward, or stop) each frame
+            # approach_largest_person() uses target_cx and largest_box_area from inference
+            # to issue the correct motor command for this frame via mecanum.py
+            if PERSON_STATE_MOVING and person_detected:
+                logging.info(
+                    f"(control_logic.py): Robot is moving and person is visible — "
+                    f"steering toward person "
+                    f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
+                )
+                approach_largest_person(target_cx, largest_box_area)
 
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
