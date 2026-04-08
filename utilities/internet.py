@@ -27,7 +27,7 @@ from queue import Queue  # import Queue for codes queue management
 
 ##### import config #####
 
-from utilities.config import LOOP_RATE_HZ, INTERNET_CONFIG  # import logging configuration from config module
+from utilities.config import INTERNET_CONFIG  # import logging configuration from config module
 
 
 ########## CREATE DEPENDENCIES ##########

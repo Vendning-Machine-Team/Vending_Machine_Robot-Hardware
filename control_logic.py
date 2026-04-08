@@ -371,7 +371,7 @@ def _physical_loop():  # central function that runs robot in real life
             now = time.time()
 
             if person_detected:
-                lat, lon = get_current_coordinates(GPS)
+                #lat, lon = get_current_coordinates(GPS)
                 logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
                 PERSON_DETECTED_STREAK += 1
                 PERSON_ABSENT_STREAK = 0
@@ -382,7 +382,6 @@ def _physical_loop():  # central function that runs robot in real life
 
             # transition STOP -> MOVE
             if (not PERSON_STATE_MOVING) and (PERSON_DETECTED_STREAK >= PERSON_DETECTED_FRAMES_TO_START):
-                #run_back_motors(10)  # test rear motors on person detection
                 forward(10)
                 PERSON_STATE_MOVING = True
                 PERSON_LAST_STATE_CHANGE_TIME = now
@@ -480,34 +479,6 @@ def _handle_command(codes):
             logging.error(f"(control_logic.py): Failed to execute keyboard command: {e}\n")
             IS_NEUTRAL = False
             IS_COMPLETE = True
-
-
-########## EXECUTE COMMANDS ##########
-
-def _convert_direction_parts_to_fixed_list(direction_parts):
-
-    fixed_direction = [None, None, None, None] # initialize fixed-length list with None values
-    
-    for part in direction_parts:
-        if part in ['w', 's']:
-            fixed_direction[0] = part
-        elif part in ['a', 'd']:
-            fixed_direction[1] = part
-        elif part in ['arrowleft', 'arrowright']:
-            fixed_direction[2] = part
-        elif part in ['arrowup', 'arrowdown']:
-            fixed_direction[3] = part
-        elif part in ['w+a', 'w+d', 's+a', 's+d']:
-            if 'w' in part:
-                fixed_direction[0] = 'w'
-            elif 's' in part:
-                fixed_direction[0] = 's'
-            if 'a' in part:
-                fixed_direction[1] = 'a'
-            elif 'd' in part:
-                fixed_direction[1] = 'd'
-    
-    return fixed_direction
 
 
 ########## COMMANDS FROM BACKEND ##########
@@ -616,7 +587,7 @@ def _execute_commands(commands, is_neutral):
 
     direction = None
     if direction_parts:
-        direction = _convert_direction_parts_to_fixed_list(direction_parts)
+        pass # previously converted all the direction parts (i.e. 'w' 'a' etc.) into a list
     if 'n' in commands or not commands:
         # neutral_position(10) # TODO set vending machine idle equivalent here
         is_neutral = True
@@ -639,31 +610,6 @@ def restart_process():  # start background thread to restart robot_dog.service e
             os.system('sudo systemctl restart robot_dog.service')
             start_time = time.time()  # reset timer after restart
         time.sleep(1)  # check every second
-
-
-def send_voltage_to_backend(voltage):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('127.0.0.1', 3000))  # Use backend's IP if remote
-        msg = f'VOLTAGE:{voltage:.4f}'
-        s.sendall(msg.encode())
-        s.close()
-    except Exception as e:
-        logging.error(f"(control_logic.py) Failed to send voltage: {e}\n")
-
-
-def voltage_monitor():
-    while True:
-        voltage_output = os.popen('vcgencmd measure_voltage').read()
-        voltage_str = voltage_output.strip().replace('volt=', '').replace('V', '')
-        try:
-            voltage = float(voltage_str)
-            if voltage < 0.8600:
-                logging.warning(f"(control_logic.py) Low voltage ({voltage:.4f}V) detected!\n")
-            send_voltage_to_backend(voltage)
-        except ValueError:
-            logging.error(f"(control_logic.py) Failed to parse voltage: {voltage_output}\n")
-        time.sleep(10)  # check every 10 seconds
 
 
 ########## RUN ROBOTIC PROCESS ##########

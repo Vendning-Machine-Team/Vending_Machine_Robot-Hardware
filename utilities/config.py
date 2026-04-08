@@ -19,7 +19,6 @@
 
 ##### import necessary libraries #####
 
-import time # import time library for gait timing
 import logging # import logging library for debugging
 
 
@@ -27,18 +26,10 @@ import logging # import logging library for debugging
 
 
 #####################################################
-############### CREATE CONFIGURATIONS ###############
+############### LOGGING CONFIGURATION ###############
 #####################################################
 
-
-########## UTILITY CONFIGURATIONS ##########
-
-##### set global fps to be used by all modules #####
-
-LOOP_RATE_HZ = 30 # global loop rate in Hz for all modules TODO DEPRECATED/LEGACY
-CONTROL_MODE = 'web' # current control mode of the robot (web or radio)
-RL_NOT_CNN = False # boolean to switch between testing and RL models (true is RL, false is cnn)
-DEFAULT_INTENSITY = 10 # default intensity for keyboard commands (1 to 10)
+########## LOGGING ##########
 
 ##### set logging configuration #####
 
@@ -46,6 +37,15 @@ LOG_CONFIG = {
     'LOG_PATH': "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/vending_machine.log", # path to log file DO NOT CHANGE
     'LOG_LEVEL': logging.INFO # set log level to logging.<DEBUG, INFO, WARNING, ERROR, or CRITICAL>
 }
+
+
+
+
+
+###########################################################
+############### CAMERA AND AI CONFIGURATION ###############
+###########################################################
+
 
 ########## CAMERA CONFIGURATION ##########
 
@@ -69,18 +69,6 @@ CAMERA_CONFIG = {
 }
 
 
-########## INTERNET CONFIGURATIONS ##########
-
-##### set internet connectivity configuration #####
-
-INTERNET_CONFIG = {
-    'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
-    'BACKEND_PUBLIC_IP': "50.16.116.170", # public IP address of backend
-    'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
-    'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
-}
-
-
 ########## INFERENCE CONFIGURATIONS ##########
 
 ##### set ML configurations #####
@@ -91,26 +79,34 @@ INFERENCE_CONFIG = {
 }
 
 
-########## ROBOT CONTROL CONFIGURATIONS (internet and radio) ##########
 
-##### declare movement channel GPIO pins #####
 
-SIGNAL_TUNING_CONFIG = { # dictionary of signal tuning configuration for sensitivity
-    'JOYSTICK_THRESHOLD': 40, # number of times condition must be met to trigger a request on a joystick channel
-    'TOGGLE_THRESHOLD': 40, # number of times condition must be met to trigger a request on a button channel
-    'TIME_FRAME': 0.10017, # time frame for condition to be met, default: 0.100158
-    'DEADBAND_HIGH': 1600, # deadband high for PWM signal
-    'DEADBAND_LOW': 1400 # deadband low for PWM signal
+###########################################################################
+############### INTERNET AND GPS CONNECTIVITY CONFIGURATION ###############
+###########################################################################
+
+
+########## INTERNET/FRONTEND CONFIGURATIONS ##########
+
+##### internet config (to connect to backend) #####
+
+INTERNET_CONFIG = {
+    'BACKEND_API_URL': "https://api.somewebsite.com", # URL of the backend API endpoint
+    'BACKEND_PUBLIC_IP': "50.16.116.170", # public IP address of backend
+    'BACKEND_PORT': 3000, # port number for backend (fixed typo from 'BACKED_PORT')
+    'SSH_SOCKET_PATH': "/tmp/robot.sock" # path to unix socket for SSH communication
 }
 
-##### set receiver configuration #####
+##### used to display what was sent from the backend #####
 
-# On Pi OS, /dev/serial0 often symlinks to ttyS0 (mini UART on GPIO 14/15) for Maestro.
-MAESTRO_CONFIG = {
-    'SERIAL_PATH': "/dev/serial0",
-    'SERIAL_BAUD_RATE': 9600,
-    'SERIAL_TIMEOUT': 1
+SCREEN_CONFIG = {
+    'WIDTH': 800, # width of the screen in pixels
+    'HEIGHT': 480, # height of the screen in pixels
+    'FPS': 30, # frames per second for screen updates
 }
+
+
+########## GPS CONFIGURATION ##########
 
 ##### set GPS configuration #####
 
@@ -122,12 +118,39 @@ GPS_CONFIG = {
     'SERIAL_TIMEOUT': 1
 }
 
-##### lid servo configuration #####
 
-# Maestro servo speed units: (0.25 μs)/(10 ms)
-# Speed = 200 means: 200 * 0.25 μs per 10ms = 50 μs per 10ms = 5,000 μs per second
-# Example: moving 1000 μs at speed 200 takes ~200ms (plus acceleration time)
-# Max speed = 16383 means: 16383 * 0.25 μs per 10ms = 4095.75 μs per 10ms = 409,575 μs per second (limited by physical servo)
+
+
+
+############################################################
+############### PHYSICAL ROBOT CONFIGURATION ###############
+############################################################
+
+
+########## SERVOS COMMUNICATION CONFIGURATION ##########
+
+##### servo configuration #####
+
+SERVO_CONFIG = { # dictionary of servo configurations TODO calibrate servo positions
+
+    'LID': {'left_hinge': {'servo': 0, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0},
+            'right_hinge': {'servo': 1, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}},
+
+    'LOCK': {'lock': {'servo': 3, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}}
+}
+
+##### maestro config #####
+
+MAESTRO_CONFIG = { # on Pi OS, /dev/serial0 often symlinks to ttyS0 (mini UART on GPIO 14/15) for maestro
+    'SERIAL_PATH': "/dev/serial0",
+    'SERIAL_BAUD_RATE': 9600,
+    'SERIAL_TIMEOUT': 1
+}
+
+
+########## LID CONFIGURATION ##########
+
+##### lid servo configuration #####
 
 LID_CONFIG = {
     'LEFT_HINGE_CHANNEL': 0, # maestro channel for lid servo (change as needed)
@@ -150,31 +173,18 @@ LID_LOCK_CONFIG = {
     'ACCELERATION': 250 # servo acceleration: max = 250
 }
 
-##### dc motor controller configuration #####
 
-# pin mapping (BCM):
-# 11     GPIO 17  FRONT LEFT     A_IN1   (LEFT_DCMC motor A -> FL)
-# 13     GPIO 27  FRONT LEFT     A_IN2   (LEFT_DCMC motor A -> FL)
-# 15     GPIO 22  BACK LEFT      B_IN1   (LEFT_DCMC motor B -> BL)
-# 16     GPIO 23  BACK LEFT      B_IN2   (LEFT_DCMC motor B -> BL)
-# 29     GPIO 5   BACK RIGHT     A_IN1   (RIGHT_DCMC motor A -> BR)
-# 31     GPIO 6   BACK RIGHT     A_IN2   (RIGHT_DCMC motor A -> BR)
-# 38     GPIO 20  FRONT RIGHT    B_IN1   (RIGHT_DCMC motor B -> FR)
-# 40     GPIO 21  FRONT RIGHT    B_IN2   (RIGHT_DCMC motor B -> FR)
-#
-# each controller also defines a MOTORS map that assigns logical wheel
-# names (FL, FR, BL, BR) to a DCMC channel and an orientation flag;
-# ORIENTATION maps clockwise/counterclockwise requests to
-# correct electrical direction for that motor
+########## DC MOTOR CONTROLLER CONFIGURATION ##########
+
+##### dc motor controller configuration #####
 
 MOTOR_CONFIG = {
 
-    # LEFT side DCMC controller
     'LEFT_DCMC': {
-        'A_IN1': 17,  # channel A direction (physical pin 11)  -> FL
-        'A_IN2': 27,  # channel A direction (physical pin 13)  -> FL
-        'B_IN1': 22,  # channel B direction (physical pin 15)  -> BL
-        'B_IN2': 23,  # channel B direction (physical pin 16)  -> BL
+        'A_IN1': 17,  # pin 11, GPIO 17, FRONT LEFT, A_IN1 (LEFT_DCMC motor A -> FL)
+        'A_IN2': 27,  # pin 13, GPIO 27, FRONT LEFT, A_IN2 (LEFT_DCMC motor A -> FL)
+        'B_IN1': 22,  # pin 15, GPIO 22, BACK LEFT, B_IN1 (LEFT_DCMC motor B -> BL)
+        'B_IN2': 23,  # pin 16, GPIO 23, BACK LEFT, B_IN2 (LEFT_DCMC motor B -> BL)
         'PWM_FREQ_HZ': 1000,
         'MOTORS': {
             'FL': {
@@ -187,12 +197,11 @@ MOTOR_CONFIG = {
             },
         },
     },
-    # RIGHT side DCMC controller
     'RIGHT_DCMC': {
-        'A_IN1': 5,   # physical pin 29  -> BR
-        'A_IN2': 6,   # physical pin 31  -> BR
-        'B_IN1': 20,  # channel B direction (physical pin 38)  -> FR
-        'B_IN2': 21,  # channel B direction (physical pin 40)  -> FR
+        'A_IN1': 5,  # pin 29, GPIO 5, BACK RIGHT, A_IN1 (RIGHT_DCMC motor A -> BR)
+        'A_IN2': 6,  # pin 31, GPIO 6, BACK RIGHT, A_IN2 (RIGHT_DCMC motor A -> BR)
+        'B_IN1': 20,  # pin 38, GPIO 20, FRONT RIGHT, B_IN1 (RIGHT_DCMC motor B -> FR)
+        'B_IN2': 21,  # pin 40, GPIO 21, FRONT RIGHT, B_IN2 (RIGHT_DCMC motor B -> FR)
         'PWM_FREQ_HZ': 1000,
         'MOTORS': {
             'FR': {
@@ -204,22 +213,5 @@ MOTOR_CONFIG = {
                 'ORIENTATION': 1,
             },
         },
-        # optional hardware PWM/EN pins when board has dedicated EN: GPIO 12, 13, 18, 19
     },
-}
-
-##### servo configuration #####
-
-SERVO_CONFIG = { # dictionary of servo configurations TODO calibrate servo positions
-
-    'LID': {'left_hinge': {'servo': 0, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0},
-            'right_hinge': {'servo': 1, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}},
-
-    'LOCK': {'lock': {'servo': 3, 'FULL_FRONT': 0.0, 'FULL_BACK': 0.0, 'FULL_FRONT_ANGLE': 0.0, 'FULL_BACK_ANGLE': 0.0}}
-}
-
-SCREEN_CONFIG = {
-    'WIDTH': 800, # width of the screen in pixels
-    'HEIGHT': 480, # height of the screen in pixels
-    'FPS': 30, # frames per second for screen updates
 }
