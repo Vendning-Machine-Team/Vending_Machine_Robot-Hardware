@@ -26,6 +26,7 @@ import os
 import atexit
 import socket
 import logging
+import json
 from collections import deque
 import numpy as np
 import cv2
@@ -159,6 +160,25 @@ PERSON_STATE_MOVING = False  # whether motors are currently commanded to move
 PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
 PERSON_LAST_DETECTED_TIME = 0.0  # tracks when a person was last positively detected
 
+##### asynchronous worker state #####
+
+MOVEMENT_STATE_LOCK = threading.Lock()
+GPS_STATE_LOCK = threading.Lock()
+
+PERSON_MOVEMENT_QUEUE = queue.Queue(maxsize=1)
+LAST_MOVEMENT_CMD = {
+    'person_detected': False,
+    'target_cx': None,
+    'largest_box_area': None,
+    'timestamp': 0.0
+}
+
+LATEST_COORDINATES = {'lat': None, 'lon': None}
+LAST_GPS_CHECK_TIME = 0.0
+GPS_CHECK_IN_PROGRESS = False
+
+GPS_CHECK_INTERVAL_SECONDS = 2.0
+
 
 ##### physical loop #####
 
@@ -166,7 +186,7 @@ def _physical_loop():  # central function that runs robot in real life
 
     ##### set/initialize variables #####
 
-    global IS_COMPLETE, IS_NEUTRAL, CURRENT_LEG  # declare as global as these will be edited by function
+    global IS_COMPLETE, IS_NEUTRAL # declare as global as these will be edited by function
     global PERSON_DETECTED_STREAK, PERSON_ABSENT_STREAK
     global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME, PERSON_LAST_DETECTED_TIME
     mjpeg_buffer = b''  # initialize buffer for MJPEG frames
@@ -177,6 +197,11 @@ def _physical_loop():  # central function that runs robot in real life
         # neutral_position(1) # TODO set vending machine idle equivalent here
         time.sleep(3)
         IS_NEUTRAL = True  # set is_neutral to True
+
+        ##### start asynchronous worker threads #####
+
+        _handle_command('movement_worker')
+        _handle_command('gps_worker')
 
     except Exception as e:  # if there is an error, log error
         logging.error(f"(control_logic.py): Failed to move to neutral standing position in runRobot: {e}\n")
@@ -212,8 +237,8 @@ def _physical_loop():  # central function that runs robot in real life
             now = time.time()
 
             if person_detected:
-                #lat, lon = get_current_coordinates(GPS)
-                logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
+                if _should_check_gps(now):
+                    _handle_command('gps_check')
                 PERSON_DETECTED_STREAK += 1
                 PERSON_ABSENT_STREAK = 0
                 PERSON_LAST_DETECTED_TIME = now
@@ -225,9 +250,9 @@ def _physical_loop():  # central function that runs robot in real life
             if (not PERSON_STATE_MOVING) and (
                 PERSON_DETECTED_STREAK >= config.PERSON_DETECTION_CONFIG['DETECTED_FRAMES_TO_START']
             ):
-                forward(10)
-                PERSON_STATE_MOVING = True
-                PERSON_LAST_STATE_CHANGE_TIME = now
+                with MOVEMENT_STATE_LOCK:
+                    PERSON_STATE_MOVING = True
+                    PERSON_LAST_STATE_CHANGE_TIME = now
 
             # transition MOVE -> STOP (with a minimum move hold time)
             elif PERSON_STATE_MOVING and (
@@ -241,45 +266,25 @@ def _physical_loop():  # central function that runs robot in real life
                 )
                 if enough_move_time and absent_hold_elapsed:
                     stop_all()
-                    PERSON_STATE_MOVING = False
-                    PERSON_LAST_STATE_CHANGE_TIME = now
+                    with MOVEMENT_STATE_LOCK:
+                        PERSON_STATE_MOVING = False
+                        PERSON_LAST_STATE_CHANGE_TIME = now
 
-            # continuous approach steering — runs every frame while the robot is actively
-            # moving AND a person is currently visible in the camera frame
-            # the debounce state machine above decides WHEN to start or stop moving
-            # this block decides WHERE to steer (left, right, forward, or stop) each frame
-            # approach_largest_person() uses target_cx and largest_box_area from inference
-            # to issue the correct motor command for this frame via mecanum.py
-            if PERSON_STATE_MOVING and person_detected:
-                logging.info(
-                    f"(control_logic.py): Robot is moving and person is visible — "
-                    f"steering toward person "
-                    f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
-                )
-                approach_largest_person(target_cx, largest_box_area)
+            # movement is dispatched to a dedicated worker thread so inference remains real-time
+            _handle_command('movement_step', {
+                'person_detected': person_detected,
+                'target_cx': target_cx,
+                'largest_box_area': largest_box_area,
+                'timestamp': now
+            })
 
             if inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
 
-            codes = None  # initially no codes
-
-            if config.CONTROL_MODE == 'web':  # if web control enabled...
-                if COMMAND_QUEUE is not None and not COMMAND_QUEUE.empty():  # if codes queue is not empty...
-                    codes = COMMAND_QUEUE.get()  # get codes from queue
-                    if codes is not None:
-                        if IS_COMPLETE:  # if movement is complete, run codes
-                            logging.info(f"(control_logic.py): Received codes '{codes}' from queue (WILL RUN).\n")
-                        else:
-                            logging.info(f"(control_logic.py): Received codes '{codes}' from queue (BLOCKED).\n")
-
-            if codes and IS_COMPLETE:  # if codes present and movement complete...
-                # logging.debug(f"(control_logic.py): Running codes: {codes}...\n")
-                threading.Thread(target=_handle_command, args=(codes), daemon=True).start()
-
-            elif not codes and IS_COMPLETE and not IS_NEUTRAL:  # if no codes and move complete and not neutral...
-                logging.debug(f"(control_logic.py): No codes received.\n")
-                threading.Thread(target=_handle_command, args=('n'), daemon=True).start()
+            request_payload = _request_user_codes()
+            if request_payload is not None:
+                _handle_command('queue_request', request_payload)
 
     except KeyboardInterrupt:  # if user ends program...
         logging.info("(control_logic.py): KeyboardInterrupt received, exiting.\n")
@@ -296,154 +301,205 @@ def _physical_loop():  # central function that runs robot in real life
 
 ########## HANDLE COMMANDS ##########
 
-def _handle_command(codes):
-    # logging.debug(f"(control_logic.py): Threading codes: {codes}...\n")
+def _handle_command(command_type, payload=None):
+    # logging.debug(f"(control_logic.py): Threading command type: {command_type}...\n")
 
-    global IS_COMPLETE, IS_NEUTRAL
-    IS_COMPLETE = False  # block new commands until movement is complete
+    worker_map = {
+        'movement_worker': _movement_worker_loop,
+        'movement_step': _queue_movement_step,
+        'gps_worker': _gps_worker_loop,
+        'gps_check': _request_gps_check,
+        'queue_request': _process_code_request,
+    }
 
-    if isinstance(codes, str):
-        if '+' in codes:
-            commands = codes.split('+')
-        elif codes == 'n':
-            commands = []
-        else:
-            commands = [codes]
-    elif isinstance(codes, (list, tuple)):
-        commands = list(codes)
-    elif isinstance(codes, dict):
-        commands = []  # not used for radio mode
-    else:
-        commands = []
+    worker = worker_map.get(command_type)
+    if worker is None:
+        logging.warning(f"(control_logic.py): Unknown threaded command type '{command_type}'.\n")
+        return
 
-    if config.CONTROL_MODE == 'web':
+    if command_type == 'movement_step':
+        worker(payload)
+        return
+
+    # fire and forget for every command category (movement/gps/queue processing)
+    threading.Thread(target=worker, args=(payload,), daemon=True).start()
+
+
+########## REQUEST USER CODES FROM QUEUE ##########
+
+def _request_user_codes():
+    if config.CONTROL_MODE != 'web':
+        return None
+    if COMMAND_QUEUE is None or COMMAND_QUEUE.empty():
+        return None
+
+    raw_payload = COMMAND_QUEUE.get()
+    request = _parse_code_request(raw_payload)
+    if request is None:
+        logging.warning(f"(control_logic.py): Invalid queue payload received: {raw_payload}\n")
+        return None
+
+    logging.info(
+        f"(control_logic.py): Pulled queued purchase verification request "
+        f"(email='{request['email']}', code='{request['code']}').\n"
+    )
+    return request
+
+
+########## QUEUE PAYLOAD PARSING ##########
+
+def _parse_code_request(raw_payload):
+    ##### normalize payload to dict #####
+
+    payload_obj = None
+    if isinstance(raw_payload, dict):
+        payload_obj = raw_payload
+    elif isinstance(raw_payload, str):
+        stripped = raw_payload.strip()
+        if not stripped:
+            return None
         try:
-            IS_NEUTRAL = _execute_commands(
-                commands,
-                IS_NEUTRAL
-            )
-            # logging.info(f"(control_logic.py): Executed keyboard codes: {commands}\n")
-            IS_COMPLETE = True
-        except Exception as e:
-            logging.error(f"(control_logic.py): Failed to execute keyboard command: {e}\n")
-            IS_NEUTRAL = False
-            IS_COMPLETE = True
-
-
-########## COMMANDS FROM BACKEND ##########
-
-def _execute_commands(commands, is_neutral):
-
-    ##### set variables #####
-
-    direction_parts = [] # diretion part list
-
-    ##### handle special toggle commands #####
-
-    if 'i' in commands:  # if user wishes to enable/disable imageless gait...
-        commands = [k for k in commands if k != 'i']  # remove 'i' from the commands list
-
-    ##### handle lid control commands #####
-
-    if 'o' in commands:  # 'o' for open lid
-        from movement.lid import open_lid
-        open_lid()
-        commands = [k for k in commands if k != 'o']
-
-    if 'c' in commands:  # 'c' for close lid
-        from movement.lid import close_lid
-        close_lid()
-        commands = [k for k in commands if k != 'c']
-
-    if 'locklid' in commands:  # 'lockid' to manually lock
-        from movement.lid import lock_lid_position
-        lock_lid_position()
-        commands = [k for k in commands if k != 'lockid']
-
-    if 'unlockid' in commands:  # 'unlockid' to manually unlock
-        from movement.lid import unlock_lid_position
-        unlock_lid_position()
-        commands = [k for k in commands if k != 'unlockid']
-
-    ##### cancel out contradictory commands #####
-
-    if 'w' in commands and 's' in commands:
-        commands = [k for k in commands if k not in ['w', 's']]
-    if 'a' in commands and 'd' in commands:
-        commands = [k for k in commands if k not in ['a', 'd']]
-    if 'arrowleft' in commands and 'arrowright' in commands:
-        commands = [k for k in commands if k not in ['arrowleft', 'arrowright']]
-    if 'arrowup' in commands and 'arrowdown' in commands:
-        commands = [k for k in commands if k not in ['arrowup', 'arrowdown']]
-
-    ##### WASD and diagonals #####
-
-    move_forward = 'w' in commands
-    move_backward = 's' in commands
-    shift_left = 'a' in commands
-    shift_right = 'd' in commands
-
-    ##### rotation #####
-
-    rotate_left = 'arrowleft' in commands
-    rotate_right = 'arrowright' in commands
-
-    ##### tilt #####
-
-    tilt_up = 'arrowup' in commands
-    tilt_down = 'arrowdown' in commands
-
-    ##### handle diagonals #####
-
-    if move_forward and shift_left:
-        direction_parts.append('w+a')
-    elif move_forward and shift_right:
-        direction_parts.append('w+d')
-    elif move_backward and shift_left:
-        direction_parts.append('s+a')
-    elif move_backward and shift_right:
-        direction_parts.append('s+d')
-
-    ##### handle single directions #####
-
-    elif move_forward:
-        direction_parts.append('w')
-    elif move_backward:
-        direction_parts.append('s')
-    elif shift_left:
-        direction_parts.append('a')
-    elif shift_right:
-        direction_parts.append('d')
-
-    ##### handle rotation #####
-
-    if rotate_left:
-        direction_parts.append('arrowleft')
-    elif rotate_right:
-        direction_parts.append('arrowright')
-
-    ##### handle tilt #####
-
-    if tilt_up:
-        direction_parts.append('arrowup')
-    elif tilt_down:
-        direction_parts.append('arrowdown')
-
-    ##### combine all direction parts into fixed-length list #####
-
-    direction = None
-    if direction_parts:
-        pass # previously converted all the direction parts (i.e. 'w' 'a' etc.) into a list
-    if 'n' in commands or not commands:
-        # neutral_position(10) # TODO set vending machine idle equivalent here
-        is_neutral = True
-    elif direction:
-        # move_direction(direction, camera_frames, intensity, IMAGELESS_GAIT) # TODO set vending machine movement equivalent here
-        is_neutral = False
+            payload_obj = json.loads(stripped)
+        except Exception:
+            # support plain string fallback: "code+email@example.com"
+            if '+' in stripped:
+                code_part, email_part = stripped.split('+', 1)
+                payload_obj = {'code': code_part.strip(), 'email': email_part.strip()}
+            elif ',' in stripped:
+                code_part, email_part = stripped.split(',', 1)
+                payload_obj = {'code': code_part.strip(), 'email': email_part.strip()}
+            else:
+                return None
     else:
-        logging.warning(f"(control_logic.py): Invalid command: {commands}.\n")
+        return None
 
-    return is_neutral
+    ##### read supported key names from backend payload #####
+
+    code_value = (
+        payload_obj.get('code')
+        or payload_obj.get('verificationCode')
+        or payload_obj.get('userCode')
+    )
+    email_value = (
+        payload_obj.get('email')
+        or payload_obj.get('userEmail')
+        or payload_obj.get('customerEmail')
+    )
+
+    if code_value is None or email_value is None:
+        return None
+
+    code_value = str(code_value).strip()
+    email_value = str(email_value).strip()
+    if not code_value or not email_value:
+        return None
+
+    return {'code': code_value, 'email': email_value}
+
+
+########## QUEUE REQUEST HANDLER ##########
+
+def _process_code_request(request_payload):
+    global IS_COMPLETE
+
+    if request_payload is None:
+        return
+
+    IS_COMPLETE = False
+    try:
+        # TODO integrate screen prompt + entered code validation in this function
+        logging.info(
+            f"(control_logic.py): Ready to display queued user email '{request_payload['email']}' "
+            f"and verify entered code against '{request_payload['code']}'.\n"
+        )
+    except Exception as e:
+        logging.error(f"(control_logic.py): Failed while processing queued user code request: {e}\n")
+    finally:
+        IS_COMPLETE = True
+
+
+########## MOVEMENT WORKER HELPERS ##########
+
+def _movement_worker_loop(_):
+    while True:
+        movement_payload = PERSON_MOVEMENT_QUEUE.get()
+        try:
+            _execute_person_movement_step(movement_payload)
+        except Exception as e:
+            logging.error(f"(control_logic.py): movement worker failed for payload {movement_payload}: {e}\n")
+
+
+def _queue_movement_step(movement_payload):
+    if movement_payload is None:
+        return
+
+    while not PERSON_MOVEMENT_QUEUE.empty():
+        try:
+            PERSON_MOVEMENT_QUEUE.get_nowait()
+        except queue.Empty:
+            break
+
+    PERSON_MOVEMENT_QUEUE.put_nowait(movement_payload)
+
+
+def _execute_person_movement_step(movement_payload):
+    global LAST_MOVEMENT_CMD
+    person_detected = bool(movement_payload.get('person_detected'))
+    target_cx = movement_payload.get('target_cx')
+    largest_box_area = movement_payload.get('largest_box_area')
+    now = movement_payload.get('timestamp', time.time())
+
+    with MOVEMENT_STATE_LOCK:
+        is_moving = PERSON_STATE_MOVING
+
+    if is_moving and person_detected:
+        logging.info(
+            f"(control_logic.py): Robot is moving and person is visible — "
+            f"steering toward person "
+            f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
+        )
+        approach_largest_person(target_cx, largest_box_area)
+
+    LAST_MOVEMENT_CMD = {
+        'person_detected': person_detected,
+        'target_cx': target_cx,
+        'largest_box_area': largest_box_area,
+        'timestamp': now
+    }
+
+
+########## GPS WORKER HELPERS ##########
+
+def _gps_worker_loop(_):
+    while True:
+        time.sleep(1.0)
+
+
+def _should_check_gps(now):
+    with GPS_STATE_LOCK:
+        return (now - LAST_GPS_CHECK_TIME) >= GPS_CHECK_INTERVAL_SECONDS and not GPS_CHECK_IN_PROGRESS
+
+
+def _request_gps_check(_=None):
+    global LAST_GPS_CHECK_TIME, GPS_CHECK_IN_PROGRESS, LATEST_COORDINATES
+
+    with GPS_STATE_LOCK:
+        if GPS_CHECK_IN_PROGRESS:
+            return
+        GPS_CHECK_IN_PROGRESS = True
+
+    try:
+        if GPS is None:
+            return
+        lat, lon = get_current_coordinates(GPS)
+        LATEST_COORDINATES = {'lat': lat, 'lon': lon}
+        logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
+    except Exception as e:
+        logging.warning(f"(control_logic.py): GPS check failed: {e}\n")
+    finally:
+        with GPS_STATE_LOCK:
+            LAST_GPS_CHECK_TIME = time.time()
+            GPS_CHECK_IN_PROGRESS = False
 
 
 ########## MISCELLANEOUS CONTROL FUNCTIONS ##########
