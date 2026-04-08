@@ -42,6 +42,40 @@ LOG_CONFIG = {
 
 
 
+############################################################
+############### ROBOT BEHAVIOR CONFIGURATION ###############
+############################################################
+
+
+########## PERSON DETECTION BEHAVIOR ##########
+
+##### debounce and motion gating for person-follow behavior #####
+
+PERSON_DETECTION_CONFIG = {
+    'DETECTED_FRAMES_TO_START': 1,   # require N consecutive "person detected" frames
+    'ABSENT_FRAMES_TO_STOP': 24,     # require M consecutive "person not detected" frames
+    'MIN_MOVE_SECONDS': 0.60,        # minimum time to keep moving once started
+    'ABSENT_HOLD_SECONDS': 0.50,     # keep moving this long after last positive detection
+}
+
+
+########## PERSON APPROACH BEHAVIOR ##########
+
+##### steering and stopping thresholds for approach logic #####
+
+PERSON_APPROACH_CONFIG = {
+    'FRAME_WIDTH': 1152,        # must match CAMERA_CONFIG['WIDTH']
+    'STOP_AREA': 45000,         # stop when person's box area reaches this threshold
+    'DEADBAND': 92,             # horizontal pixel deadband around frame center
+    'INTENSITY': 5,             # default motor intensity during approach
+    'SLOWDOWN_AREA': 30000,     # start slowing down when box area reaches this threshold
+    'SLOW_INTENSITY': 2,        # reduced intensity while inside slowdown zone
+}
+
+
+
+
+
 ###########################################################
 ############### CAMERA AND AI CONFIGURATION ###############
 ###########################################################
