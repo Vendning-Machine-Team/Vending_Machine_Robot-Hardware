@@ -235,7 +235,7 @@ def _state_machine():  # central function that runs robot in real life
             #TODO We need to make this be a 'calm' approach: if person detected, roll up to them
             #TODO and eventually stop infront of them to get their attention. The robot will essentially harrass a
             #TODO customer until they start a sale by following them around at a distance and holding that distance for
-            #TODO a certain amount of time until either they start a sale or time elapses. We need to ensure
+            #TODO a certain amount of time until either they start a sale, time elapses, or they are out of range. We need to ensure
             #TODO that the robot is not too close to the customer and that they are not too far away, while also making
             #TODO sure that the person remains in frame.
 
@@ -246,8 +246,7 @@ def _state_machine():  # central function that runs robot in real life
                 PERSON_DETECTED_STREAK >= config.PERSON_DETECTION_CONFIG['DETECTED_FRAMES_TO_START']
             ):
 
-                #Threading.thread(target=forward, args=(10), daemon=True).start()
-                forward(10) # TODO should I thread this? if so need a variable to track movement completion
+                #TODO Tri puts his perosn tracking code here
 
                 PERSON_STATE_MOVING = True # set person state to True
                 PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
@@ -272,8 +271,7 @@ def _state_machine():  # central function that runs robot in real life
                 # if robot has been moving for required time and person has been absent for required time...
                 if enough_move_time and absent_hold_elapsed:
 
-                    #Threading.thread(target=stop_all, daemon=True).start()
-                    stop_all() # TODO should I thread this? if so need a variable to track movement completion
+                    #TODO Tri puts his robot rotation code here 
 
                     PERSON_STATE_MOVING = False # set person state to False
                     PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
