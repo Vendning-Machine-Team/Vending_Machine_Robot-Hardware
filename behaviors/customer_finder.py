@@ -161,3 +161,16 @@ def approach_largest_person(target_cx, largest_box_area):
 ###################################################
 
 #TODO Henry works here
+########## FIND CUSTOMER FUNCTION ##########
+
+def find_customer():
+
+    # step 1. rotate some random angle (180 degrees ± 90 degrees)
+    
+
+    # step 2. move in some direction until person is detected
+
+
+    # step 3. lock onto person (basically the function above)
+
+    pass
