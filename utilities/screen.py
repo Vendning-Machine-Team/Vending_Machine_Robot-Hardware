@@ -54,19 +54,15 @@ fps = SCREEN_CONFIG['FPS']
 
 def initialize_screen(): # function to initialize pygame screen
 
-    # For Raspberry Pi framebuffer display (touchscreen)
-    # Set these before pygame.init()
-    if os.path.exists('/dev/fb0'):
-        os.environ['SDL_VIDEODRIVER'] = 'fbcon'
-        os.environ['SDL_FBDEV'] = '/dev/fb0'
-
+    # Initialize pygame first
     pygame.init()
     pygame.font.init()
 
-    # Hide mouse cursor for touchscreen
-    pygame.mouse.set_visible(True)  # Set to False on Pi touchscreen
+    # Hide mouse cursor for touchscreen (set to False on Pi)
+    pygame.mouse.set_visible(True)
 
     screen = pygame.display.set_mode((width, height)) #default of 800x480
+    pygame.display.set_caption("Payment Code Entry")
 
     # Use relative path from this file's location to find image_assets
     current_dir = os.path.dirname(os.path.abspath(__file__))
