@@ -9,7 +9,6 @@
 
 
 
-
 ############################################################
 ############### IMPORT / CREATE DEPENDENCIES ###############
 ############################################################
@@ -24,13 +23,12 @@ import logging # import logging for debugging
 
 ##### import config #####
 
-import utilities.config as config
+import utilities.config as config # imports utilities/config.py; binds to `config` — all PERSON_APPROACH_CONFIG values (FRAME_WIDTH, STOP_AREA, etc.) live there
 
 ##### import necessary movement functions #####
 
-from behaviors.mecanum import *
-from utilities.motors import stop_all
-
+from behaviors.mecanum import * # wildcard-imports arc_left(), arc_right(), forward(), drive() from behaviors/mecanum.py into scope
+from utilities.motors import stop_all # imports stop_all() from utilities/motors.py — writes PWM duty 0 to every GPIO motor pin via pigpio
 
 
 
@@ -44,7 +42,8 @@ from utilities.motors import stop_all
 
 ##### steer robot toward the largest detected person in the camera frame #####
 
-def approach_largest_person(target_cx, largest_box_area):
+def approach_largest_person(target_cx,        # PARAM: horizontal pixel center of the largest detected person bounding box
+                             largest_box_area): # PARAM: bounding box area in px²; used as camera-based distance proxy (bigger = closer)
     """
     Issues a single motor command each frame to steer the robot toward
     the largest detected person visible in the camera frame.
@@ -70,15 +69,15 @@ def approach_largest_person(target_cx, largest_box_area):
 
     # find the horizontal center of the camera frame in pixels
     # everything left of this point has a negative offset, right has a positive offset
-    frame_center_x = config.PERSON_APPROACH_CONFIG['FRAME_WIDTH'] // 2
+    frame_center_x = config.PERSON_APPROACH_CONFIG['FRAME_WIDTH'] // 2 # reads FRAME_WIDTH from config, integer-divides by 2 → midpoint pixel of camera frame (e.g. 640 → 320)
 
     # compute how far left or right the detected person is from the frame center
-    # negative offset = person is left of center  → robot needs to arc left
-    # positive offset = person is right of center → robot needs to arc right
-    # near-zero offset = person is centered       → robot drives straight forward
-    offset = target_cx - frame_center_x
+    # negative offset = person is left of center  then robot needs to arc left
+    # positive offset = person is right of center then robot needs to arc right
+    # near-zero offset = person is centered       then robot drives straight forward
+    offset = target_cx - frame_center_x # subtracts frame_center_x from target_cx → signed horizontal error in px; negative=left of center, positive=right of center
 
-    logging.info(
+    logging.debug( # logs: function entry, box_area in px², target_cx, frame_center, signed offset (:+d forces sign prefix); \n adds blank line for log readability
         f"(control_logic.py): approach_largest_person called — "
         f"box_area={largest_box_area}px², "
         f"target_cx={target_cx}px, "
@@ -86,68 +85,68 @@ def approach_largest_person(target_cx, largest_box_area):
         f"offset={offset:+d}px.\n"
     )
 
-    if largest_box_area >= config.PERSON_APPROACH_CONFIG['STOP_AREA']:
+    if largest_box_area >= config.PERSON_APPROACH_CONFIG['STOP_AREA']: # reads STOP_AREA from config; box area AT OR ABOVE threshold → person is close enough, enter hard-stop branch
 
         # the person's bounding box has exceeded the hard stop threshold —
         # they are close enough to the robot, halt all four motors immediately
         # stop_all() writes duty cycle 0 to every GPIO motor pin via pigpio
-        stop_all()
-        logging.info(
+        stop_all() # writes PWM duty 0 to all four GPIO motor pins via pigpio daemon — immediately halts all wheel motion
+        logging.debug( # logs STOP decision: current box_area and the STOP_AREA threshold value that triggered it
             f"(control_logic.py): STOP — person is close enough. "
             f"box_area={largest_box_area}px² >= APPROACH_STOP_AREA={config.PERSON_APPROACH_CONFIG['STOP_AREA']}px². "
             f"All motors stopped.\n"
         )
 
-    elif largest_box_area >= config.PERSON_APPROACH_CONFIG['SLOWDOWN_AREA']:
+    elif largest_box_area >= config.PERSON_APPROACH_CONFIG['SLOWDOWN_AREA']: # reads SLOWDOWN_AREA from config; box area below STOP_AREA but AT OR ABOVE SLOWDOWN_AREA → reduce speed, keep steering
 
         # the person's box has entered the slowdown zone but not yet hit the hard stop —
         # reduce intensity to APPROACH_SLOW_INTENSITY so the robot bleeds off speed
         # and has minimal momentum when stop_all() fires on the next threshold crossing
         # steering logic (left/right/forward) still applies at the reduced intensity
-        if offset < -config.PERSON_APPROACH_CONFIG['DEADBAND']:
-            arc_left(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY'])
-        elif offset > config.PERSON_APPROACH_CONFIG['DEADBAND']:
-            arc_right(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY'])
-        else:
-            forward(config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY'])
-        logging.info(
+        if offset < -config.PERSON_APPROACH_CONFIG['DEADBAND']: # reads DEADBAND from config; offset more negative than −DEADBAND → person is LEFT of center beyond tolerance zone
+            arc_left(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY']) # calls drive(x=0, y=1.0, r=-0.4) in mecanum.py; SLOW_INTENSITY scales PWM down; curves forward-left at reduced speed
+        elif offset > config.PERSON_APPROACH_CONFIG['DEADBAND']: # reads DEADBAND from config; offset more positive than +DEADBAND → person is RIGHT of center beyond tolerance zone
+            arc_right(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY']) # calls drive(x=0, y=1.0, r=+0.4) in mecanum.py; SLOW_INTENSITY scales PWM down; curves forward-right at reduced speed
+        else: # offset within ±DEADBAND → person is centered; drive straight at reduced speed
+            forward(config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY']) # FL/BL counterclockwise, FR/BR clockwise via move_motor(); SLOW_INTENSITY is the reduced speed scalar
+        logging.debug( # logs SLOWDOWN decision: current box_area, SLOWDOWN_AREA threshold, SLOW_INTENSITY applied, and signed offset
             f"(control_logic.py): SLOWDOWN — entering stop zone. "
             f"box_area={largest_box_area}px² >= APPROACH_SLOWDOWN_AREA={config.PERSON_APPROACH_CONFIG['SLOWDOWN_AREA']}px². "
             f"Reduced intensity to {config.PERSON_APPROACH_CONFIG['SLOW_INTENSITY']}, offset={offset:+d}px.\n"
         )
 
-    elif offset < -config.PERSON_APPROACH_CONFIG['DEADBAND']:
+    elif offset < -config.PERSON_APPROACH_CONFIG['DEADBAND']: # box area below both thresholds (far from robot); person is LEFT of center beyond deadband → arc left at full INTENSITY
 
         # person is to the LEFT of center beyond the deadband —
         # arc_left() calls drive(x=0, y=forward_strength, r=-turn_strength)
         # which mixes the four mecanum wheels to curve the robot forward-left
         # this steers the robot's heading toward the person without stopping forward motion
-        arc_left(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['INTENSITY'])
-        logging.info(
+        arc_left(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['INTENSITY']) # drive(x=0, y=1.0, r=-0.4); full INTENSITY; steers robot heading left toward person
+        logging.debug( # logs ARC LEFT decision: signed pixel offset, deadband threshold, and current full INTENSITY
             f"(control_logic.py): ARC LEFT — person is left of center. "
             f"offset={offset:+d}px, deadband={config.PERSON_APPROACH_CONFIG['DEADBAND']}px, "
             f"intensity={config.PERSON_APPROACH_CONFIG['INTENSITY']}.\n"
         )
 
-    elif offset > config.PERSON_APPROACH_CONFIG['DEADBAND']:
+    elif offset > config.PERSON_APPROACH_CONFIG['DEADBAND']: # box area below both thresholds; offset NOT left of center; person is RIGHT of center beyond deadband → arc right at full INTENSITY
 
         # person is to the RIGHT of center beyond the deadband —
         # arc_right() calls drive(x=0, y=forward_strength, r=+turn_strength)
         # which mixes the four mecanum wheels to curve the robot forward-right
-        arc_right(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['INTENSITY'])
-        logging.info(
+        arc_right(forward_strength=1.0, turn_strength=0.4, intensity=config.PERSON_APPROACH_CONFIG['INTENSITY']) # drive(x=0, y=1.0, r=+0.4); full INTENSITY; steers robot heading right toward person
+        logging.debug( # logs ARC RIGHT decision: signed pixel offset, deadband threshold, and current full INTENSITY
             f"(control_logic.py): ARC RIGHT — person is right of center. "
             f"offset={offset:+d}px, deadband={config.PERSON_APPROACH_CONFIG['DEADBAND']}px, "
             f"intensity={config.PERSON_APPROACH_CONFIG['INTENSITY']}.\n"
         )
 
-    else:
+    else: # offset within ±DEADBAND and box area below both thresholds → person is centered; drive straight at full INTENSITY
 
         # person is within the deadband of the frame center —
         # drive all four wheels straight forward at approach intensity
         # forward() sets FL/BL counterclockwise and FR/BR clockwise via move_motor()
-        forward(config.PERSON_APPROACH_CONFIG['INTENSITY'])
-        logging.info(
+        forward(config.PERSON_APPROACH_CONFIG['INTENSITY']) # FL/BL counterclockwise, FR/BR clockwise via move_motor(); full INTENSITY speed scalar; no steering correction needed
+        logging.debug( # logs FORWARD decision: signed pixel offset, deadband window, and current full INTENSITY
             f"(control_logic.py): FORWARD — person is centered. "
             f"offset={offset:+d}px within deadband={config.PERSON_APPROACH_CONFIG['DEADBAND']}px, "
             f"intensity={config.PERSON_APPROACH_CONFIG['INTENSITY']}.\n"
@@ -159,6 +158,13 @@ def approach_largest_person(target_cx, largest_box_area):
 ###################################################
 ############### FIND A NEW CUSTOMER ###############
 ###################################################
+def force_sale():
+
+#TODO Henry works here
+
+
+
+
 
 #TODO Henry works here
 ########## FIND CUSTOMER FUNCTION ##########
