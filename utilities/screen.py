@@ -19,10 +19,14 @@
 
 ##### import necessary libraries #####
 
+import sys
+import os
 import logging  # import logging for debugging
 import time  # import time for sleep functions
 import pygame  # import pygame for screen display and input handling
-import os  # import os for file operations
+
+# Add parent directory to path so we can import from utilities
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 ##### import necessary functions #####
 
