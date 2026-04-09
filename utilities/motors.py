@@ -290,22 +290,34 @@ def run_back_motors(intensity): # helper function to run only back motors for wi
 def stop_all(controller_key=None): # stop motors; if controller_key is None, stop all controllers; else stop only that one
 
     if PI is None or not PI.connected:
-        return
+        logging.warning("(motors.py): stop_all called but pigpio is unavailable.\n")
+        return False
 
     keys = [controller_key] if controller_key else MOTOR_CONFIG.keys()
+    any_success = False
+    any_failure = False
 
     for key in keys:
 
         cfg = MOTOR_CONFIG.get(key)
 
         if cfg is None:
+            any_failure = True
             continue
 
         for pin_key in ('A_IN1', 'A_IN2', 'B_IN1', 'B_IN2'):
 
             try:
                 PI.set_PWM_dutycycle(cfg[pin_key], 0)
+                any_success = True
+
             except Exception as e:
                 logging.warning(f"(motors.py): stop_all failed on {key} {pin_key}: {e}\n")
+                any_failure = True
 
     logging.debug(f"(motors.py): stop_all controller_key={controller_key}\n")
+    if any_failure:
+        return False # return False if any stop_all failed
+    if any_success:
+        return True # return True if all attempted stop_all writes were successful
+    return False # return False if no pins were actually written

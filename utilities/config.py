@@ -139,6 +139,12 @@ SCREEN_CONFIG = {
     'FPS': 30, # frames per second for screen updates
 }
 
+##### sale configuration #####
+
+SALE_CONFIG = {
+    'SALE_TIMEOUT_SECONDS': 120, # max time to wait for customer to complete a sale (prevents infinite hang)
+    'MAX_CODE_ATTEMPTS': 3, # max number of times a user can try to enter the code before the sale is considered failed
+}
 
 ########## GPS CONFIGURATION ##########
 
@@ -150,6 +156,18 @@ GPS_CONFIG = {
     'SERIAL_PATH': "/dev/ttyAMA4",
     'SERIAL_BAUD_RATE': 9600,
     'SERIAL_TIMEOUT': 1
+}
+
+##### set robot boundaries configuration #####
+
+ROBOT_COORDINATES = { #TODO add VERY ACCURATE coordinates to the sombrilla enterance
+    'HOME_LAT': 29.0,
+    'HOME_LON': 29.0,
+    'ACCEPTABLE_RANGE': 30.0, # acceptable range away from lat/lon in meters
+    'LAST_DISTANCE_FROM_HOME': 0.0, # last distance from home in meters
+    'LAST_LAT': 0.0,
+    'LAST_LON': 0.0,
+    'LAST_FACING': 0.0, # last N/S/E/W course from home
 }
 
 
