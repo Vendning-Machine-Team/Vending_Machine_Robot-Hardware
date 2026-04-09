@@ -69,8 +69,8 @@ def test_servo_2_plus_90():
 
 def test_servo_2_minus_90():
     """Move servo 2 (lid lock) -90° from center (1000 μs / 0°)"""
-    print("\n[Servo 2] Moving -90° from center (750 μs / 0°)")
-    set_target(channel=2, target=400, speed=200, acceleration=250)
+    print("\n[Servo 2] Moving -90° from center (1000 μs / 0°)")
+    set_target(channel=2, target=1000, speed=200, acceleration=250)
     print("Servo 2 should now be rotated -90° from center")
 
 def test_servo_2_full_range():
