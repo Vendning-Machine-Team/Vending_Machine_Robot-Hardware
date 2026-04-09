@@ -73,6 +73,17 @@ PERSON_APPROACH_CONFIG = {
 }
 
 
+########## FORCE SALE BEHAVIOR ##########
+
+##### rotation scan intensity for re-acquiring a lost person #####
+
+FORCE_SALE_CONFIG = {
+    'ROTATE_INTENSITY': 2,          # low intensity for in-place rotation scan when person exits frame (maps to ~20% PWM)
+    'MAX_ENGAGEMENT_SECONDS': 300,  # total seconds allowed with one person before robot gives up and finds someone else; change to e.g. 10 for quick testing
+    'HOLD_DEADBAND': 150,           # pixel deadband for sighted re-centering inside State 1 HOLD; wider than PERSON_APPROACH_CONFIG DEADBAND (92px) intentionally — robot is stationary so more drift is tolerated before nudging; smaller = tighter centering, larger = more tolerance
+}
+
+
 
 
 
