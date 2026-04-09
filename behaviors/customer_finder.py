@@ -158,11 +158,6 @@ def approach_largest_person(target_cx,        # PARAM: horizontal pixel center o
 ###################################################
 ############### FIND A NEW CUSTOMER ###############
 ###################################################
-def force_sale():
-
-#TODO Henry works here
-
-
 
 
 
@@ -173,6 +168,18 @@ def find_customer():
 
     # step 1. rotate some random angle (180 degrees ± 90 degrees)
     
+
+    # step 2. move in some direction until person is detected
+
+
+    # step 3. lock onto person (basically the function above)
+
+    pass
+
+def force_sale():
+
+    # step 1. rotate towards the same person (if they dont run away)
+
 
     # step 2. move in some direction until person is detected
 
