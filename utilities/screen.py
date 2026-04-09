@@ -54,8 +54,18 @@ fps = SCREEN_CONFIG['FPS']
 
 def initialize_screen(): # function to initialize pygame screen
 
+    # For Raspberry Pi framebuffer display (touchscreen)
+    # Set these before pygame.init()
+    if os.path.exists('/dev/fb0'):
+        os.environ['SDL_VIDEODRIVER'] = 'fbcon'
+        os.environ['SDL_FBDEV'] = '/dev/fb0'
+
     pygame.init()
     pygame.font.init()
+
+    # Hide mouse cursor for touchscreen
+    pygame.mouse.set_visible(True)  # Set to False on Pi touchscreen
+
     screen = pygame.display.set_mode((width, height)) #default of 800x480
 
     # Use relative path from this file's location to find image_assets
@@ -72,33 +82,6 @@ def initialize_screen(): # function to initialize pygame screen
             images[name] = img
 
     return screen, images
-
-
-########## BUTTON LAYOUT ##########
-
-def get_button_positions(button_width, button_height, start_x, start_y, padding):
-    """
-    Create a numpad-style grid layout for buttons.
-    Returns dict mapping button names to (x, y) positions.
-    """
-    # Numpad layout:
-    # 1 2 3
-    # 4 5 6
-    # 7 8 9
-    #   0
-    positions = {
-        'button_one':   (start_x + 0 * (button_width + padding), start_y + 0 * (button_height + padding)),
-        'button_two':   (start_x + 1 * (button_width + padding), start_y + 0 * (button_height + padding)),
-        'button_three': (start_x + 2 * (button_width + padding), start_y + 0 * (button_height + padding)),
-        'button_four':  (start_x + 0 * (button_width + padding), start_y + 1 * (button_height + padding)),
-        'button_five':  (start_x + 1 * (button_width + padding), start_y + 1 * (button_height + padding)),
-        'button_six':   (start_x + 2 * (button_width + padding), start_y + 1 * (button_height + padding)),
-        'button_seven': (start_x + 0 * (button_width + padding), start_y + 2 * (button_height + padding)),
-        'button_eight': (start_x + 1 * (button_width + padding), start_y + 2 * (button_height + padding)),
-        'button_nine':  (start_x + 2 * (button_width + padding), start_y + 2 * (button_height + padding)),
-        'button_zero':  (start_x + 1 * (button_width + padding), start_y + 3 * (button_height + padding)),
-    }
-    return positions
 
 
 ########## MAIN SCREEN LOOP ##########
@@ -121,23 +104,6 @@ def run_payment_screen():
             'zero': '0'
         }
 
-        # Get button dimensions from first button image
-        sample_button = images.get('button_one')
-        if sample_button:
-            button_width = sample_button.get_width()
-            button_height = sample_button.get_height()
-        else:
-            button_width = 80
-            button_height = 80
-
-        # Calculate button positions (centered numpad)
-        padding = 10
-        grid_width = 3 * button_width + 2 * padding
-        start_x = (width - grid_width) // 2
-        start_y = 120  # leave room for input display at top
-
-        button_positions = get_button_positions(button_width, button_height, start_x, start_y, padding)
-
         current_input = ""
         font = pygame.font.SysFont(None, 64)
         clock = pygame.time.Clock()
@@ -153,27 +119,20 @@ def run_payment_screen():
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_x, mouse_y = event.pos
 
-                    # Check each button for click
+                    # Check each button for click (buttons are full-screen overlays at 0,0)
                     for name in button_names:
-                        if name not in button_positions:
-                            continue
-
-                        btn_x, btn_y = button_positions[name]
                         button_image = images[name]
-                        btn_width = button_image.get_width()
-                        btn_height = button_image.get_height()
 
-                        # Check if click is within button bounds
-                        if (btn_x <= mouse_x <= btn_x + btn_width and
-                            btn_y <= mouse_y <= btn_y + btn_height):
+                        # Check if click position has non-transparent pixel in this button image
+                        if (0 <= mouse_x < button_image.get_width() and
+                            0 <= mouse_y < button_image.get_height()):
 
-                            # Check pixel alpha for non-rectangular buttons
-                            local_x = mouse_x - btn_x
-                            local_y = mouse_y - btn_y
-                            if button_image.get_at((int(local_x), int(local_y)))[3] != 0:
+                            pixel_alpha = button_image.get_at((mouse_x, mouse_y))[3]
+                            if pixel_alpha != 0:  # Non-transparent = button was clicked
                                 num = num_map[name.split('_')[1]]
                                 current_input += num
                                 logging.info(f"(screen.py): Button pressed: {num}, Current input: {current_input}")
+                                print(f"Button pressed: {num}, Current input: {current_input}")
                                 break
 
                 elif event.type == pygame.KEYDOWN:
@@ -189,25 +148,18 @@ def run_payment_screen():
             # Draw screen
             screen.fill((255, 255, 255))  # white background
 
-            # Display screen_interface as background
+            # Display screen_interface as background first
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
 
-            # Display buttons at their positions
+            # Display all button overlays at (0,0) - they are pre-positioned in the images
             for name in button_names:
-                if name in button_positions:
-                    screen.blit(images[name], button_positions[name])
+                screen.blit(images[name], (0, 0))
 
-            # Display current input at top center
+            # Display current input in the text box area (centered in the interface box)
             text = font.render(current_input, True, (0, 0, 0))
-            text_rect = text.get_rect(center=(width // 2, 50))
+            text_rect = text.get_rect(center=(width // 2, 135))  # Positioned in the input box
             screen.blit(text, text_rect)
-
-            # Display instruction text
-            instruction_font = pygame.font.SysFont(None, 32)
-            instruction = instruction_font.render("Enter your payment code:", True, (50, 50, 50))
-            instruction_rect = instruction.get_rect(center=(width // 2, 90))
-            screen.blit(instruction, instruction_rect)
 
             pygame.display.flip()
             clock.tick(fps)
