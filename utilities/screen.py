@@ -126,8 +126,9 @@ def run_code_screen(email=None):
                             pixel_alpha = button_image.get_at((mouse_x, mouse_y))[3]
                             if pixel_alpha != 0:
                                 num = num_map[name.split('_')[1]]
-                                current_input += num
-                                print(f"Code input: {current_input}")
+                                if len(current_input) < 10:  # max 10 digits
+                                    current_input += num
+                                    print(f"Code input: {current_input}")
                                 break
 
                     # Check submit/clear buttons
@@ -151,7 +152,7 @@ def run_code_screen(email=None):
                             return current_input
                     elif event.key == pygame.K_ESCAPE:
                         current_input = ""
-                    elif event.unicode.isdigit():
+                    elif event.unicode.isdigit() and len(current_input) < 10:  # max 10 digits
                         current_input += event.unicode
 
             # Draw screen
@@ -177,14 +178,14 @@ def run_code_screen(email=None):
             title_rect = title.get_rect(center=(width // 2, 25))
             screen.blit(title, title_rect)
 
-            # Email info below header (y = 60, above the input box)
+            # Email info in blue header area (y = 45, inside blue border)
             if email:
-                email_text = message_font.render(f"{email}, please enter your code:", True, (0, 0, 0))
-                email_rect = email_text.get_rect(center=(width // 2, 60))
+                email_text = message_font.render(f"{email}, please enter your code:", True, (255, 255, 255))
+                email_rect = email_text.get_rect(center=(width // 2, 45))
                 screen.blit(email_text, email_rect)
 
             # Code display inside the input box (y = 125, centered in the box area)
-            code_display = font.render(current_input if current_input else "_ _ _ _ _ _", True, (0, 0, 0))
+            code_display = font.render(current_input, True, (0, 0, 0))
             code_rect = code_display.get_rect(center=(width // 2, 125))
             screen.blit(code_display, code_rect)
 
