@@ -28,10 +28,9 @@ import utilities.config as config
 
 ##### import necessary movement functions #####
 
-from movement.mecanum import arc_left, arc_right, forward
+from movement.mecanum import *
 from utilities.motors import stop_all
 
-########## CREATE DEPENDENCIES ##########
 
 
 
