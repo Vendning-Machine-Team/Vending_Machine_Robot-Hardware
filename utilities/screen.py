@@ -26,7 +26,7 @@ import os  # import os for file operations
 
 ##### import necessary functions #####
 
-from utilities.config import SCREEN_CONFIG # import screen configuration from config module
+from config import SCREEN_CONFIG # import screen configuration from config module
 
 
 ########## CREATE DEPENDENCIES ##########
@@ -54,8 +54,7 @@ def initialize_screen(): # function to initialize pygame screen
     pygame.font.init()
     screen = pygame.display.set_mode((width, height)) #default of 800x480
 
-    image_folder = "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/ImageAssets"
-    #image_folder = r"C:\Users\srsay\Downloads\Vending_Machine_Robot-Hardware\ImageAssets"
+    image_folder = r"c:\Users\srsay\Downloads\Vending_Machine_Robot-Hardware\image_assets"
 
     images = {}
     for filename in os.listdir(image_folder):
@@ -70,23 +69,7 @@ def initialize_screen(): # function to initialize pygame screen
 try:
     screen, images = initialize_screen() # initialize the screen
 
-    # Define button positions (assuming buttons are 80x80)
-    button_size = 80
-    margin = 10
-    start_x = 50
-    start_y = 50
-    positions = {
-        'button_one': (start_x, start_y),
-        'button_two': (start_x + button_size + margin, start_y),
-        'button_three': (start_x + 2*(button_size + margin), start_y),
-        'button_four': (start_x, start_y + button_size + margin),
-        'button_five': (start_x + button_size + margin, start_y + button_size + margin),
-        'button_six': (start_x + 2*(button_size + margin), start_y + button_size + margin),
-        'button_seven': (start_x, start_y + 2*(button_size + margin)),
-        'button_eight': (start_x + button_size + margin, start_y + 2*(button_size + margin)),
-        'button_nine': (start_x + 2*(button_size + margin), start_y + 2*(button_size + margin)),
-        'button_zero': (start_x + button_size + margin, start_y + 3*(button_size + margin)),
-    }
+    button_names = [name for name in images.keys() if name.startswith('button_')]
 
     # Number mapping
     num_map = {'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'zero': '0'}
@@ -107,21 +90,24 @@ try:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
-                for name, pos in positions.items():
-                    rect = pygame.Rect(pos[0], pos[1], button_size, button_size)
-                    if rect.collidepoint(x, y):
-                        num = num_map[name.split('_')[1]]
-                        insert_number(num)
+                for name in button_names:
+                    button_image = images[name]
+                    if x < button_image.get_width() and y < button_image.get_height():
+                        if button_image.get_at((x, y))[3] != 0:
+                            num = num_map[name.split('_')[1]]
+                            insert_number(num)
+                            break
 
         screen.fill((255, 255, 255))  # fill the screen with white
 
-        # Display buttons
-        for name, pos in positions.items():
-            screen.blit(images[name], pos)
+        # Display screen_interface at the bottom first so buttons render on top
+        if 'screen_interface' in images:
+            interface_height = images['screen_interface'].get_height()
+            screen.blit(images['screen_interface'], (0, height - interface_height))
 
-        # Display screen_interface at the bottom
-        interface_height = images['screen_interface'].get_height()
-        screen.blit(images['screen_interface'], (0, height - interface_height))
+        # Display buttons on top of the interface/background
+        for name in button_names:
+            screen.blit(images[name], (0, 0))
 
         # Display current input
         text = font.render(current_input, True, (0, 0, 0))
