@@ -69,7 +69,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
             return sale_in_progress
 
         # step 2. display sale interface and ask user to enter code
-        #TODO sam implement this pls
+        #TODO sam implement pls
         entered_code = None
         sale_start_time = time.monotonic() # start timeout timer once sale begins
 
@@ -98,7 +98,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
                 logging.info(f"(control_logic.py): Correct code entered. Lid will open and customer can grab purchase.\n")
 
                 # steps 3.0 display success message
-                #TODO sam implement this pls
+                #TODO sam implement pls
 
                 # step 3.1 call lid.py open_close_cycle() to open the lid and let
                 open_close_cycle() # open the lid and let the customer grab their purchase (unfortunately uses honor system atm)
@@ -114,7 +114,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
                 logging.info(f"(control_logic.py): Incorrect code entered. {config.SALE_CONFIG['MAX_CODE_ATTEMPTS'] - failed_attempts} attempts remaining.\n")
 
                 # steps 3.0 display error message with remaining attempts
-                #TODO sam implement this pls
+                #TODO sam implement pls
 
                 failed_attempts += 1
                 entered_code = None # reset so UI can prompt again
@@ -124,7 +124,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
             logging.info(f"(control_logic.py): Incorrect code entered {config.SALE_CONFIG['MAX_CODE_ATTEMPTS']} times. Sale will not be completed.\n")
 
             # step 6.0 display error message
-            #TODO sam implement this pls
+            #TODO sam implement pls
 
             sale_in_progress = False
 
