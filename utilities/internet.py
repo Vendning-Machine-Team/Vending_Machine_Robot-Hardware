@@ -20,6 +20,7 @@
 ##### import necessary libraries #####
 
 import os  # import os for file operations
+import json  # import json for parsing backend customer_queue payloads
 import socket  # import socket for Unix socket communication
 import logging  # import logging for debugging
 import threading  # import threading for concurrent operations
@@ -65,6 +66,55 @@ def initialize_backend_socket(): # function to connect to backend via socket
             logging.error(f"(internet.py): Failed to connect to website backend: {e}\n")
             SOCK = None
             return None
+
+
+########## PARSE CUSTOMER QUEUE PAYLOAD FROM BACKEND ##########
+
+def parse_customer_queue_command(command):  # extract email and purchase code from one queue entry
+
+    ##### match wire format from Frontend paymentCode.js + Backend /api/robot-command #####
+
+    # frontend POSTs command = JSON.stringify({ type: "customer_queue", email, code }).
+    # backend sends that same UTF-8 string length-prefixed over TCP; listen_for_commands()
+    # decodes bytes and puts the string on the queue unchanged.
+
+    if command is None:
+        return None, None
+
+    if isinstance(command, (bytes, bytearray)):
+        try:
+            command = command.decode("utf-8")
+        except Exception:
+            return None, None
+
+    if not isinstance(command, str):
+        return None, None
+
+    text = command.strip()
+    if not text.startswith("{"):
+        return None, None
+
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        return None, None
+
+    if not isinstance(obj, dict) or obj.get("type") != "customer_queue":
+        return None, None
+
+    raw_email = obj.get("email")
+    raw_code = obj.get("code")
+
+    if raw_code is None:
+        return None, None
+
+    email = "" if raw_email is None else str(raw_email).strip()
+    code = str(raw_code).strip()
+
+    if not code or not code.isdigit():
+        return None, None
+
+    return email, code
 
 
 ########## STREAM FRAME DATA TO BACKEND ##########
@@ -128,7 +178,9 @@ def initialize_command_queue(local_sock): # function to create a codes queue for
 ########## RECEIVE COMMANDS FROM BACKEND ##########
 
 def listen_for_commands(local_sock, command_queue):
+
     logging.debug("(internet.py): Listening for commands from website backend...\n")
+
     while True:
         try:
             length_bytes = local_sock.recv(4)
