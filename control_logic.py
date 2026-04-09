@@ -55,7 +55,8 @@ DETECTION_OUTPUT_LAYER = None
 from movement.mecanum import *
 from movement.lid import *
 from utilities.motors import initialize_motor_controllers, stop_all, run_back_motors
-from movement.customer_interaction import approach_largest_person
+from movement.customer_finder import approach_largest_person
+from movement.proximity import check_distance_from_home, return_to_home
 
 #atexit.register(stop_all)
 
@@ -146,8 +147,8 @@ from utilities import inference
 
 ##### set global variables #####
 
-MOVEMENT_COMPLETE = True  # boolean that tracks if the robot is done moving, independent of it being neutral or not
-SALE_IN_PROGRESS = False  # set global neutral standing boolean
+SALE_IN_PROGRESS = False # boolean that tracks if a sale is in progress always starts as False until proven otherwise
+OUT_OF_RANGE = False  # boolean that tracks if robot is out of range of home coordinates always starts as False until proven otherwise
 
 ##### person detection variables #####
 
@@ -163,14 +164,11 @@ def _state_machine():  # central function that runs robot in real life
 
     ##### set/initialize variables #####
 
-    global MOVEMENT_COMPLETE, SALE_IN_PROGRESS # declare as global as these will be edited by function
+    global SALE_IN_PROGRESS, OUT_OF_RANGE # declare as global as these will be edited by function
     global PERSON_DETECTED_STREAK, PERSON_ABSENT_STREAK
     global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME, PERSON_LAST_DETECTED_TIME
     mjpeg_buffer = b''  # initialize buffer for MJPEG frames
-
-    ##### run robotic logic #####
-
-    SALE_IN_PROGRESS = True  # set is_neutral to True
+    last_gps_check_time = 0.0 # throttle GPS check threads
 
     ##### stream video, run inference, and control the robot #####
 
@@ -275,6 +273,22 @@ def _state_machine():  # central function that runs robot in real life
                     PERSON_STATE_MOVING = False # set person state to False
                     PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
 
+                        #TODO code below is Tri's code; it's important to learn this code and to then build off of it later.
+
+            # continuous approach steering — runs every frame while the robot is actively
+            # moving AND a person is currently visible in the camera frame
+            # the debounce state machine above decides WHEN to start or stop moving
+            # this block decides WHERE to steer (left, right, forward, or stop) each frame
+            # approach_largest_person() uses target_cx and largest_box_area from inference
+            # to issue the correct motor command for this frame via mecanum.py
+            #if PERSON_STATE_MOVING and person_detected:
+            #    logging.info(
+            #        f"(control_logic.py): Robot is moving and person is visible — "
+            #        f"steering toward person "
+            #        f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
+            #    )
+            #    approach_largest_person(target_cx, largest_box_area)
+
 
             ########## HANDLING A SALE ##########
 
@@ -299,10 +313,7 @@ def _state_machine():  # central function that runs robot in real life
                     SALE_IN_PROGRESS = True # set sale in progress to True
                     stopped_successfully = stop_all()
 
-                    if stopped_successfully: # if the movement was stopped successfully...
-                        MOVEMENT_COMPLETE = True
-
-                    else: # if the movement was not stopped successfully...
+                    if not stopped_successfully: # if the movement was not stopped successfully...
                         logging.error(f"(control_logic.py): Failed to stop all movement. Sale will not be completed.\n")
                         SALE_IN_PROGRESS = False
 
@@ -377,40 +388,30 @@ def _state_machine():  # central function that runs robot in real life
             #TODO need to 'find a new customer'.
 
 
-            ########## OCCAISONALLY CHECK FOR LAT AND LON COORDINATES ##########
+            ########## CHECK ROBOT'S RANGE FROM HOME COORDINATES ##########
 
-            #TODO while the robot is following a customer, there is a chance that the robot will
-            #TODO wander too far away from the library entrance. We need to check for this and if the robot
-            #TODO is too far away from the library entrance, we need to give up the chase and turn around back to the
-            #TODO library entrance. To do this, we need to occaisonally check for lat and lon, using those to determine
-            #TODO our distance as well as cardinal directions. We need the cardinal directions to determine how we should turn
-            #TODO in order to get back to the library entrance. We also need to ignore this if a sale is in progress (i.e. if the
-            #TODO robot is slightly out of range but someone is buying something, only turn back to the library entrance if the sale is complete).
+            #TODO currently not threaded, will keep like this so person tracking does not resume until robot is back in range of home coordinates
+
+            # step 1. every n amount of time (opening a new thread every time and then closing it after checking) check for lat and lon coordinates
+            if (time.monotonic() - last_gps_check_time) >= config.GPS_CONFIG['CHECK_INTERVAL_SECONDS']:
+                last_gps_check_time = time.monotonic()
+
+                def _gps_check_worker():
+                    global OUT_OF_RANGE
+                    OUT_OF_RANGE = bool(check_distance_from_home())
+
+                threading.Thread(target=_gps_check_worker, daemon=True).start()
+
+            # step 2. if within acceptable range, do nothing
+            if not OUT_OF_RANGE:
+                logging.debug(f"(control_logic.py): Robot is within acceptable range of home coordinates.\n")
 
 
-
-
-
-
-
-
-
-
-            #TODO code below is queue logic I made ages ago plus Tri's code; it's important to learn this code and to then build off of it later.
-
-            # continuous approach steering — runs every frame while the robot is actively
-            # moving AND a person is currently visible in the camera frame
-            # the debounce state machine above decides WHEN to start or stop moving
-            # this block decides WHERE to steer (left, right, forward, or stop) each frame
-            # approach_largest_person() uses target_cx and largest_box_area from inference
-            # to issue the correct motor command for this frame via mecanum.py
-            if PERSON_STATE_MOVING and person_detected:
-                logging.info(
-                    f"(control_logic.py): Robot is moving and person is visible — "
-                    f"steering toward person "
-                    f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
-                )
-                approach_largest_person(target_cx, largest_box_area)
+            # step 3. else outside acceptable range, turn around and move back to home coordinates (this needs to be in the same thread as moving
+            # toward or away from the customer so the robot does not get confused; unless a sale is in progress, the robot MUST prioritize going home)
+            elif OUT_OF_RANGE and (not SALE_IN_PROGRESS):
+                logging.info(f"(control_logic.py): Robot is out of range of home coordinates and no sale is in progress. Turning around and moving back to home coordinates.\n")
+                return_to_home()
 
 
     ########## SHUT DOWN ROBOT ##########

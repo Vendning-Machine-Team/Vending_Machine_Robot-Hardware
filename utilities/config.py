@@ -155,12 +155,13 @@ SALE_CONFIG = {
 GPS_CONFIG = {
     'SERIAL_PATH': "/dev/ttyAMA4",
     'SERIAL_BAUD_RATE': 9600,
-    'SERIAL_TIMEOUT': 1
+    'SERIAL_TIMEOUT': 1,
+    'CHECK_INTERVAL_SECONDS': 10, # interval to check for lat and lon coordinates (in seconds)
 }
 
 ##### set robot boundaries configuration #####
 
-ROBOT_COORDINATES = { #TODO add VERY ACCURATE coordinates to the sombrilla enterance
+LOCATION_CONFIG = { #TODO add VERY ACCURATE coordinates to the sombrilla enterance
     'HOME_LAT': 29.0,
     'HOME_LON': 29.0,
     'ACCEPTABLE_RANGE': 30.0, # acceptable range away from lat/lon in meters
