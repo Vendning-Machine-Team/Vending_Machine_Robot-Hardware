@@ -49,14 +49,19 @@ DETECTION_MODEL = None
 DETECTION_INPUT_LAYER = None
 DETECTION_OUTPUT_LAYER = None
 
-
 ##### movement functions #####
 
 from movement.mecanum import *
-from movement.lid import *
 from utilities.motors import initialize_motor_controllers, stop_all, run_back_motors
+
+##### customer tracking functions #####
+
 from movement.customer_finder import approach_largest_person
 from movement.proximity import check_distance_from_home, return_to_home
+
+##### sale functions #####
+
+from movement.sale import handle_sale
 
 #atexit.register(stop_all)
 
@@ -301,84 +306,8 @@ def _state_machine():  # central function that runs robot in real life
 
             if CODES_FROM_BACKEND_QUEUE is not None and not CODES_FROM_BACKEND_QUEUE.empty():  # if codes were received...
 
-                codes = CODES_FROM_BACKEND_QUEUE.get() # get codes from queue
-                failed_attempts = 0 # initialize failed attempts to 0
-
-                if codes is not None: # if codes are legit...
-
-                    #TODO We need to call screen.py functions to display the sale interface, asking the email to enter their code.
-                    #TODO We need to also think about what will happen if there are multiple codes received from the backend at once.
-
-                    # step 0. set sale in progress to True and stop all movement
-                    SALE_IN_PROGRESS = True # set sale in progress to True
-                    stopped_successfully = stop_all()
-
-                    if not stopped_successfully: # if the movement was not stopped successfully...
-                        logging.error(f"(control_logic.py): Failed to stop all movement. Sale will not be completed.\n")
-                        SALE_IN_PROGRESS = False
-
-                    # step 1. separate email and code from code string with new internet function
-                    email, code = parse_customer_queue_command(codes)
-
-                    # step 2. display sale interface and ask user to enter code
-                    #TODO sam implement this pls
-                    entered_code = None
-                    sale_start_time = time.monotonic() # start timeout timer once sale begins
-
-                    # step 3. compare entered code with backend code
-                    while failed_attempts < config.SALE_CONFIG['MAX_CODE_ATTEMPTS']: # while the user has not tried 3 times and failed...
-
-                        if (time.monotonic() - sale_start_time) >= config.SALE_CONFIG['SALE_TIMEOUT_SECONDS']:
-                            logging.warning(
-                                f"(control_logic.py): Sale timed out after {config.SALE_CONFIG['SALE_TIMEOUT_SECONDS']}s "
-                                f"(email='{email}'). Canceling sale.\n"
-                            )
-                            SALE_IN_PROGRESS = False
-                            break
-
-                        logging.info(f"(control_logic.py): Checking code entered by user...\n")
-
-                        # if no user input yet, wait without consuming an attempt (prevents immediate 3x failure)
-                        if entered_code is None:
-
-                            logging.info(f"(control_logic.py): No code entered yet. Waiting for user to enter code...\n")
-                            time.sleep(0.1)
-                            continue
-
-                        if entered_code == code: # if the entered code is correct...
-
-                            logging.info(f"(control_logic.py): Correct code entered. Lid will open and customer can grab purchase.\n")
-
-                            # steps 3.0 display success message
-                            #TODO sam implement this pls
-
-                            # step 3.1 call lid.py open_close_cycle() to open the lid and let
-                            open_close_cycle() # open the lid and let the customer grab their purchase (unfortunately uses honor system atm)
-
-                            # step 3.2 set SALE_IN_PROGRESS to False
-                            SALE_IN_PROGRESS = False
-
-                            # step 3.3 break out of while loop
-                            break
-
-                        else: # if the entered code is incorrect...
-
-                            logging.info(f"(control_logic.py): Incorrect code entered. {config.SALE_CONFIG['MAX_CODE_ATTEMPTS'] - failed_attempts} attempts remaining.\n")
-
-                            # steps 3.0 display error message with remaining attempts
-                            #TODO sam implement this pls
-
-                            failed_attempts += 1
-                            entered_code = None # reset so UI can prompt again
-
-                    # step 4. if user has tried MAX_CODE_ATTEMPTS times and failed, display error message and set SALE_IN_PROGRESS to False
-                    if failed_attempts >= config.SALE_CONFIG['MAX_CODE_ATTEMPTS']:
-                        logging.info(f"(control_logic.py): Incorrect code entered {config.SALE_CONFIG['MAX_CODE_ATTEMPTS']} times. Sale will not be completed.\n")
-
-                        # step 6.0 display error message
-                        #TODO sam implement this pls
-
-                        SALE_IN_PROGRESS = False
+                codes = CODES_FROM_BACKEND_QUEUE.get() # get one sale payload from queue
+                SALE_IN_PROGRESS = handle_sale(codes, SALE_IN_PROGRESS)
 
 
             ########## FIND A NEW CUSTOMER ##########
