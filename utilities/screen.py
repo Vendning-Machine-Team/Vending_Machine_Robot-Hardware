@@ -131,9 +131,9 @@ def run_code_screen(email=None):
                                     print(f"Code input: {current_input}")
                                 break
 
-                    # Check submit/clear buttons
-                    submit_rect = pygame.Rect(width // 2 + 20, height - 70, 150, 35)
-                    clear_rect = pygame.Rect(width // 2 - 170, height - 70, 150, 35)
+                    # Check submit/clear buttons (in blue footer)
+                    submit_rect = pygame.Rect(width // 2 + 20, height - 55, 150, 40)
+                    clear_rect = pygame.Rect(width // 2 - 170, height - 55, 150, 40)
 
                     if submit_rect.collidepoint(mouse_x, mouse_y) and current_input:
                         logging.info(f"(screen.py): Code entered: {current_input}")
@@ -161,10 +161,9 @@ def run_code_screen(email=None):
             ##### LAYER 1: Background interface #####
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
-            else:
-                # Fallback: draw blue header and footer
-                pygame.draw.rect(screen, (0, 120, 255), (0, 0, width, 50))
-                pygame.draw.rect(screen, (0, 120, 255), (0, height - 40, width, 40))
+
+            # Draw expanded blue footer (covers bottom area for buttons)
+            pygame.draw.rect(screen, (0, 120, 255), (0, height - 80, width, 80))
 
             ##### LAYER 2: Numpad buttons (overlay images at 0,0) #####
             button_names = [name for name in images.keys() if name.startswith('button_')]
@@ -189,12 +188,12 @@ def run_code_screen(email=None):
             code_rect = code_display.get_rect(center=(width // 2, 125))
             screen.blit(code_display, code_rect)
 
-            ##### LAYER 4: Submit/Clear buttons (above blue footer) #####
-            submit_rect = pygame.Rect(width // 2 + 20, height - 70, 150, 35)
-            clear_rect = pygame.Rect(width // 2 - 170, height - 70, 150, 35)
+            ##### LAYER 4: Submit/Clear buttons (inside blue footer) #####
+            submit_rect = pygame.Rect(width // 2 + 20, height - 55, 150, 40)
+            clear_rect = pygame.Rect(width // 2 - 170, height - 55, 150, 40)
 
-            pygame.draw.rect(screen, (0, 150, 0), submit_rect)
-            pygame.draw.rect(screen, (200, 50, 50), clear_rect)
+            pygame.draw.rect(screen, (0, 180, 0), submit_rect)  # green submit
+            pygame.draw.rect(screen, (220, 60, 60), clear_rect)  # red clear
 
             submit_text = message_font.render("SUBMIT", True, (255, 255, 255))
             clear_text = message_font.render("CLEAR", True, (255, 255, 255))
