@@ -26,7 +26,6 @@ import os
 import atexit
 import socket
 import logging
-import json
 from collections import deque
 import numpy as np
 import cv2
@@ -43,7 +42,7 @@ LOGGER = initialize_logging()
 CAMERA_PROCESS = None
 CHANNEL_DATA = {}
 SOCK = None
-COMMAND_QUEUE = None
+CODES_FROM_BACKEND_QUEUE = None
 ROBOT_ID = None
 JOINT_MAP = {}
 DETECTION_MODEL = None
@@ -68,7 +67,7 @@ from utilities.gps import *
 
 ##### prepare real robot #####
 
-def set_real_robot_dependencies():  # function to initialize real robot dependencies
+def set_robot_dependencies():  # function to initialize real robot dependencies
 
     ##### import necessary functions #####
 
@@ -77,7 +76,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     ##### initialize global variables #####
 
-    global CAMERA_PROCESS, SOCK, COMMAND_QUEUE, ROBOT_ID, JOINT_MAP, GPS
+    global CAMERA_PROCESS, SOCK, CODES_FROM_BACKEND_QUEUE, ROBOT_ID, JOINT_MAP, GPS
     global DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER
 
     ##### initialize camera process #####
@@ -88,15 +87,12 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
     ##### initialize socket and codes queue #####
 
-    if config.CONTROL_MODE == 'web':  # if web control mode and robot needs a socket connection for controls and video...
-         SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
-         COMMAND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize codes queue for socket communication
-         if SOCK is None:
-             logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
-         if COMMAND_QUEUE is None:
-             logging.error("(control_logic.py): Failed to initialize COMMAND_QUEUE for robot!\n")
-    if config.CONTROL_MODE == 'web':
-        COMMAND_QUEUE = queue.Queue()  # empty queue for testing; no backend connection
+    SOCK = internet.initialize_backend_socket()  # initialize EC2 socket connection
+    CODES_FROM_BACKEND_QUEUE = internet.initialize_command_queue(SOCK)  # initialize codes queue for socket communication
+    if SOCK is None:
+        logging.error("(control_logic.py): Failed to initialize SOCK for robot!\n")
+    if CODES_FROM_BACKEND_QUEUE is None:
+        logging.error("(control_logic.py): Failed to initialize CODES_FROM_BACKEND_QUEUE for robot!\n")
 
     ##### initialize SSDLite person detection model #####
 
@@ -129,7 +125,7 @@ def set_real_robot_dependencies():  # function to initialize real robot dependen
 
 ##### prepare robot with correct dependencies #####
 
-set_real_robot_dependencies()
+set_robot_dependencies()
 
 ##### post-initialization dependencies #####
 
@@ -149,8 +145,8 @@ from utilities import inference
 
 ##### set global variables #####
 
-IS_COMPLETE = True  # boolean that tracks if the robot is done moving, independent of it being neutral or not
-IS_NEUTRAL = False  # set global neutral standing boolean
+MOVEMENT_COMPLETE = True  # boolean that tracks if the robot is done moving, independent of it being neutral or not
+SALE_IN_PROGRESS = False  # set global neutral standing boolean
 
 ##### person detection variables #####
 
@@ -160,51 +156,21 @@ PERSON_STATE_MOVING = False  # whether motors are currently commanded to move
 PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
 PERSON_LAST_DETECTED_TIME = 0.0  # tracks when a person was last positively detected
 
-##### asynchronous worker state #####
 
-MOVEMENT_STATE_LOCK = threading.Lock()
-GPS_STATE_LOCK = threading.Lock()
+##### state machine loop #####
 
-PERSON_MOVEMENT_QUEUE = queue.Queue(maxsize=1)
-LAST_MOVEMENT_CMD = {
-    'person_detected': False,
-    'target_cx': None,
-    'largest_box_area': None,
-    'timestamp': 0.0
-}
-
-LATEST_COORDINATES = {'lat': None, 'lon': None}
-LAST_GPS_CHECK_TIME = 0.0
-GPS_CHECK_IN_PROGRESS = False
-
-GPS_CHECK_INTERVAL_SECONDS = 2.0
-
-
-##### physical loop #####
-
-def _physical_loop():  # central function that runs robot in real life
+def _state_machine():  # central function that runs robot in real life
 
     ##### set/initialize variables #####
 
-    global IS_COMPLETE, IS_NEUTRAL # declare as global as these will be edited by function
+    global MOVEMENT_COMPLETE, SALE_IN_PROGRESS # declare as global as these will be edited by function
     global PERSON_DETECTED_STREAK, PERSON_ABSENT_STREAK
     global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME, PERSON_LAST_DETECTED_TIME
     mjpeg_buffer = b''  # initialize buffer for MJPEG frames
 
     ##### run robotic logic #####
 
-    try:  # try to run robot startup sequence
-        # neutral_position(1) # TODO set vending machine idle equivalent here
-        time.sleep(3)
-        IS_NEUTRAL = True  # set is_neutral to True
-
-        ##### start asynchronous worker threads #####
-
-        _handle_command('movement_worker')
-        _handle_command('gps_worker')
-
-    except Exception as e:  # if there is an error, log error
-        logging.error(f"(control_logic.py): Failed to move to neutral standing position in runRobot: {e}\n")
+    SALE_IN_PROGRESS = True  # set is_neutral to True
 
     ##### stream video, run inference, and control the robot #####
 
@@ -212,20 +178,34 @@ def _physical_loop():  # central function that runs robot in real life
 
         while True:  # central loop to entire process, commenting out of importance
 
-            mjpeg_buffer, _, inference_frame = decode_real_frame(  # run camera and decode frame (no video stream to backend)
+            now = time.time() # get current time for timing calculations
+
+
+            ########## RUN CAMERA AND INFERENCE ##########
+
+            ##### decode camera frame #####
+
+            # run camera and decode frame (no video stream to backend)
+            mjpeg_buffer, _, inference_frame = decode_real_frame(
                 CAMERA_PROCESS,
                 mjpeg_buffer
             )
 
-            # run person detection on the current decoded camera frame via OpenVINO + Myriad VPU
-            # returns three values:
-            #   person_detected  — True if at least one person is above 0.5 confidence
-            #   target_cx        — horizontal pixel center of the largest detected person box
-            #   largest_box_area — area (px²) of the largest box, used as a distance proxy
+            ##### run person detection #####
+
             person_detected, target_cx, largest_box_area = inference.run_person_detection(
                 DETECTION_MODEL, DETECTION_INPUT_LAYER, DETECTION_OUTPUT_LAYER,
                 inference_frame, run_inference=True
             )
+
+            ##### show inference frame #####
+
+            if inference_frame is not None:
+                cv2.imshow("SSDLite detection", inference_frame)
+                cv2.waitKey(1)
+
+            ##### log inference results #####
+
             logging.debug(
                 f"(control_logic.py): Inference unpacked — "
                 f"person_detected={person_detected}, "
@@ -233,273 +213,159 @@ def _physical_loop():  # central function that runs robot in real life
                 f"largest_box_area={largest_box_area}px².\n"
             )
 
-            # TODO AI/Pathfinding team can create behaviors here
-            now = time.time()
+            ##### person detected #####
 
-            if person_detected:
-                if _should_check_gps(now):
-                    _handle_command('gps_check')
-                PERSON_DETECTED_STREAK += 1
-                PERSON_ABSENT_STREAK = 0
-                PERSON_LAST_DETECTED_TIME = now
-            else:
-                PERSON_ABSENT_STREAK += 1
-                PERSON_DETECTED_STREAK = 0
+            if person_detected: # if a person is detected...
 
-            # transition STOP -> MOVE
+                PERSON_DETECTED_STREAK += 1 # increment detected streak
+                PERSON_ABSENT_STREAK = 0 # reset absent streak
+                PERSON_LAST_DETECTED_TIME = now # update last detected time
+
+            else: # if no person is detected...
+
+                PERSON_ABSENT_STREAK += 1 # increment absent streak
+                PERSON_DETECTED_STREAK = 0 # reset detected streak
+
+
+            ########## APPROACHING A CUSTOMER ##########
+
+            #TODO We need to make this be a 'calm' approach: if person detected, roll up to them
+            #TODO and eventually stop infront of them to get their attention. The robot will essentially harrass a
+            #TODO customer until they start a sale by following them around at a distance and holding that distance for
+            #TODO a certain amount of time until either they start a sale or time elapses. We need to ensure
+            #TODO that the robot is not too close to the customer and that they are not too far away, while also making
+            #TODO sure that the person remains in frame.
+
+            ##### transition from robot stop to approach customer #####
+
+            # if the robot not currently moving and person has been detected for required num frames...
             if (not PERSON_STATE_MOVING) and (
                 PERSON_DETECTED_STREAK >= config.PERSON_DETECTION_CONFIG['DETECTED_FRAMES_TO_START']
             ):
-                with MOVEMENT_STATE_LOCK:
-                    PERSON_STATE_MOVING = True
-                    PERSON_LAST_STATE_CHANGE_TIME = now
 
-            # transition MOVE -> STOP (with a minimum move hold time)
+                #Threading.thread(target=forward, args=(10), daemon=True).start()
+                forward(10) # TODO should I thread this? if so need a variable to track movement completion
+
+                PERSON_STATE_MOVING = True # set person state to True
+                PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
+
+            ##### transition from robot move to stop #####
+
+            # if the robot is currently moving and person has been absent for required num frames...
             elif PERSON_STATE_MOVING and (
                 PERSON_ABSENT_STREAK >= config.PERSON_DETECTION_CONFIG['ABSENT_FRAMES_TO_STOP']
             ):
-                enough_move_time = (
+
+                enough_move_time = ( # find time since last state change for required time
                     (now - PERSON_LAST_STATE_CHANGE_TIME) >= config.PERSON_DETECTION_CONFIG['MIN_MOVE_SECONDS']
                 )
-                absent_hold_elapsed = (
+
+                absent_hold_elapsed = ( # find time since last person was detected for required time
                     (now - PERSON_LAST_DETECTED_TIME) >= config.PERSON_DETECTION_CONFIG['ABSENT_HOLD_SECONDS']
                 )
+
+                ##### person moves out of frame #####
+
+                # if robot has been moving for required time and person has been absent for required time...
                 if enough_move_time and absent_hold_elapsed:
-                    stop_all()
-                    with MOVEMENT_STATE_LOCK:
-                        PERSON_STATE_MOVING = False
-                        PERSON_LAST_STATE_CHANGE_TIME = now
 
-            # movement is dispatched to a dedicated worker thread so inference remains real-time
-            _handle_command('movement_step', {
-                'person_detected': person_detected,
-                'target_cx': target_cx,
-                'largest_box_area': largest_box_area,
-                'timestamp': now
-            })
+                    #Threading.thread(target=stop_all, daemon=True).start()
+                    stop_all() # TODO should I thread this? if so need a variable to track movement completion
 
-            if inference_frame is not None:
-                cv2.imshow("SSDLite detection", inference_frame)
-                cv2.waitKey(1)
+                    PERSON_STATE_MOVING = False # set person state to False
+                    PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
 
-            request_payload = _request_user_codes()
-            if request_payload is not None:
-                _handle_command('queue_request', request_payload)
+
+            ########## HANDLING A SALE ##########
+
+            #TODO After rolling up to the customer, we need to handle the sale. If after we roll up to them,
+            #TODO they are still in the frame, and they dont start a sale, we need to skip to 'find a new customer'.
+            #TODO If they start a sale, we need to handle the sale. It is okay to have a sale take place in this
+            #TODO same thread, as the roobt inference hanging while waiting for a sale to end is actually a good thing.
+            #TODO We don't want the robot to do a 180° and wander off while a sale is in progress.
+            #TODO This is also where we cann screen.py functions to display the sale interface.
+
+            codes = None  # initially no codes
+
+            if CODES_FROM_BACKEND_QUEUE is not None and not CODES_FROM_BACKEND_QUEUE.empty():  # if codes queue is not empty...
+                codes = CODES_FROM_BACKEND_QUEUE.get()  # get codes from queue
+                if codes is not None:
+                    if MOVEMENT_COMPLETE:  # if movement is complete, run codes
+                        logging.info(f"(control_logic.py): Received codes '{codes}' from queue (WILL RUN).\n")
+                    else:
+                        logging.info(f"(control_logic.py): Received codes '{codes}' from queue (BLOCKED).\n")
+
+            if codes and MOVEMENT_COMPLETE:  # if codes present and movement complete...
+                # logging.debug(f"(control_logic.py): Running codes: {codes}...\n")
+                threading.Thread(target=_handle_command, args=(codes), daemon=True).start()
+
+            elif not codes and MOVEMENT_COMPLETE and not SALE_IN_PROGRESS:  # if no codes and move complete and not neutral...
+                logging.debug(f"(control_logic.py): No codes received.\n")
+
+
+            ########## FIND A NEW CUSTOMER ##########
+
+            #TODO If a sale is not begun after a certain amount of time (i.e. the robot does not get a code from the backend after
+            #TODO a certain amount of time), we need to skip to 'find a new customer'. If a sale has successfully completed, then we
+            #TODO need to 'find a new customer'.
+
+
+            ########## OCCAISONALLY CHECK FOR LAT AND LON COORDINATES ##########
+
+            #TODO while the robot is following a customer, there is a chance that the robot will
+            #TODO wander too far away from the library entrance. We need to check for this and if the robot
+            #TODO is too far away from the library entrance, we need to give up the chase and turn around back to the
+            #TODO library entrance. To do this, we need to occaisonally check for lat and lon, using those to determine
+            #TODO our distance as well as cardinal directions. We need the cardinal directions to determine how we should turn
+            #TODO in order to get back to the library entrance. We also need to ignore this if a sale is in progress (i.e. if the
+            #TODO robot is slightly out of range but someone is buying something, only turn back to the library entrance if the sale is complete).
+
+
+
+
+
+
+
+
+
+
+            #TODO code below is queue logic I made ages ago plus Tri's code; it's important to learn this code and to then build off of it later.
+
+            # continuous approach steering — runs every frame while the robot is actively
+            # moving AND a person is currently visible in the camera frame
+            # the debounce state machine above decides WHEN to start or stop moving
+            # this block decides WHERE to steer (left, right, forward, or stop) each frame
+            # approach_largest_person() uses target_cx and largest_box_area from inference
+            # to issue the correct motor command for this frame via mecanum.py
+            if PERSON_STATE_MOVING and person_detected:
+                logging.info(
+                    f"(control_logic.py): Robot is moving and person is visible — "
+                    f"steering toward person "
+                    f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
+                )
+                approach_largest_person(target_cx, largest_box_area)
+
+
+    ########## SHUT DOWN ROBOT ##########
+
+    ##### handle keyboard interrupt #####
 
     except KeyboardInterrupt:  # if user ends program...
         logging.info("(control_logic.py): KeyboardInterrupt received, exiting.\n")
         stop_all()
 
+    ##### handle unexpected exception #####
+
     except Exception as e:  # if something breaks and only God knows what it is...
         logging.error(f"(control_logic.py): Unexpected exception in main loop: {e}\n")
-        stop_all()
+        stop_all() # stop all motors
         exit(1)
 
+    ##### stop all motors and close all windows #####
+
     finally:
         stop_all()
-
-
-########## HANDLE COMMANDS ##########
-
-def _handle_command(command_type, payload=None):
-    # logging.debug(f"(control_logic.py): Threading command type: {command_type}...\n")
-
-    worker_map = {
-        'movement_worker': _movement_worker_loop,
-        'movement_step': _queue_movement_step,
-        'gps_worker': _gps_worker_loop,
-        'gps_check': _request_gps_check,
-        'queue_request': _process_code_request,
-    }
-
-    worker = worker_map.get(command_type)
-    if worker is None:
-        logging.warning(f"(control_logic.py): Unknown threaded command type '{command_type}'.\n")
-        return
-
-    if command_type == 'movement_step':
-        worker(payload)
-        return
-
-    # fire and forget for every command category (movement/gps/queue processing)
-    threading.Thread(target=worker, args=(payload,), daemon=True).start()
-
-
-########## REQUEST USER CODES FROM QUEUE ##########
-
-def _request_user_codes():
-    if config.CONTROL_MODE != 'web':
-        return None
-    if COMMAND_QUEUE is None or COMMAND_QUEUE.empty():
-        return None
-
-    raw_payload = COMMAND_QUEUE.get()
-    request = _parse_code_request(raw_payload)
-    if request is None:
-        logging.warning(f"(control_logic.py): Invalid queue payload received: {raw_payload}\n")
-        return None
-
-    logging.info(
-        f"(control_logic.py): Pulled queued purchase verification request "
-        f"(email='{request['email']}', code='{request['code']}').\n"
-    )
-    return request
-
-
-########## QUEUE PAYLOAD PARSING ##########
-
-def _parse_code_request(raw_payload):
-    ##### normalize payload to dict #####
-
-    payload_obj = None
-    if isinstance(raw_payload, dict):
-        payload_obj = raw_payload
-    elif isinstance(raw_payload, str):
-        stripped = raw_payload.strip()
-        if not stripped:
-            return None
-        try:
-            payload_obj = json.loads(stripped)
-        except Exception:
-            # support plain string fallback: "code+email@example.com"
-            if '+' in stripped:
-                code_part, email_part = stripped.split('+', 1)
-                payload_obj = {'code': code_part.strip(), 'email': email_part.strip()}
-            elif ',' in stripped:
-                code_part, email_part = stripped.split(',', 1)
-                payload_obj = {'code': code_part.strip(), 'email': email_part.strip()}
-            else:
-                return None
-    else:
-        return None
-
-    ##### read supported key names from backend payload #####
-
-    code_value = (
-        payload_obj.get('code')
-        or payload_obj.get('verificationCode')
-        or payload_obj.get('userCode')
-    )
-    email_value = (
-        payload_obj.get('email')
-        or payload_obj.get('userEmail')
-        or payload_obj.get('customerEmail')
-    )
-
-    if code_value is None or email_value is None:
-        return None
-
-    code_value = str(code_value).strip()
-    email_value = str(email_value).strip()
-    if not code_value or not email_value:
-        return None
-
-    return {'code': code_value, 'email': email_value}
-
-
-########## QUEUE REQUEST HANDLER ##########
-
-def _process_code_request(request_payload):
-    global IS_COMPLETE
-
-    if request_payload is None:
-        return
-
-    IS_COMPLETE = False
-    try:
-        # TODO integrate screen prompt + entered code validation in this function
-        logging.info(
-            f"(control_logic.py): Ready to display queued user email '{request_payload['email']}' "
-            f"and verify entered code against '{request_payload['code']}'.\n"
-        )
-    except Exception as e:
-        logging.error(f"(control_logic.py): Failed while processing queued user code request: {e}\n")
-    finally:
-        IS_COMPLETE = True
-
-
-########## MOVEMENT WORKER HELPERS ##########
-
-def _movement_worker_loop(_):
-    while True:
-        movement_payload = PERSON_MOVEMENT_QUEUE.get()
-        try:
-            _execute_person_movement_step(movement_payload)
-        except Exception as e:
-            logging.error(f"(control_logic.py): movement worker failed for payload {movement_payload}: {e}\n")
-
-
-def _queue_movement_step(movement_payload):
-    if movement_payload is None:
-        return
-
-    while not PERSON_MOVEMENT_QUEUE.empty():
-        try:
-            PERSON_MOVEMENT_QUEUE.get_nowait()
-        except queue.Empty:
-            break
-
-    PERSON_MOVEMENT_QUEUE.put_nowait(movement_payload)
-
-
-def _execute_person_movement_step(movement_payload):
-    global LAST_MOVEMENT_CMD
-    person_detected = bool(movement_payload.get('person_detected'))
-    target_cx = movement_payload.get('target_cx')
-    largest_box_area = movement_payload.get('largest_box_area')
-    now = movement_payload.get('timestamp', time.time())
-
-    with MOVEMENT_STATE_LOCK:
-        is_moving = PERSON_STATE_MOVING
-
-    if is_moving and person_detected:
-        logging.info(
-            f"(control_logic.py): Robot is moving and person is visible — "
-            f"steering toward person "
-            f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
-        )
-        approach_largest_person(target_cx, largest_box_area)
-
-    LAST_MOVEMENT_CMD = {
-        'person_detected': person_detected,
-        'target_cx': target_cx,
-        'largest_box_area': largest_box_area,
-        'timestamp': now
-    }
-
-
-########## GPS WORKER HELPERS ##########
-
-def _gps_worker_loop(_):
-    while True:
-        time.sleep(1.0)
-
-
-def _should_check_gps(now):
-    with GPS_STATE_LOCK:
-        return (now - LAST_GPS_CHECK_TIME) >= GPS_CHECK_INTERVAL_SECONDS and not GPS_CHECK_IN_PROGRESS
-
-
-def _request_gps_check(_=None):
-    global LAST_GPS_CHECK_TIME, GPS_CHECK_IN_PROGRESS, LATEST_COORDINATES
-
-    with GPS_STATE_LOCK:
-        if GPS_CHECK_IN_PROGRESS:
-            return
-        GPS_CHECK_IN_PROGRESS = True
-
-    try:
-        if GPS is None:
-            return
-        lat, lon = get_current_coordinates(GPS)
-        LATEST_COORDINATES = {'lat': lat, 'lon': lon}
-        logging.info(f"(control_logic.py): Robot at coordinates: {lat}, {lon}\n")
-    except Exception as e:
-        logging.warning(f"(control_logic.py): GPS check failed: {e}\n")
-    finally:
-        with GPS_STATE_LOCK:
-            LAST_GPS_CHECK_TIME = time.time()
-            GPS_CHECK_IN_PROGRESS = False
+        cv2.destroyAllWindows()
 
 
 ########## MISCELLANEOUS CONTROL FUNCTIONS ##########
@@ -520,4 +386,4 @@ restart_thread = threading.Thread(target=restart_process, daemon=True)
 restart_thread.start()
 # voltage_thread = threading.Thread(target=voltage_monitor, daemon=True)
 # voltage_thread.start()
-_physical_loop()  # run robot process
+_state_machine()  # run robot process
