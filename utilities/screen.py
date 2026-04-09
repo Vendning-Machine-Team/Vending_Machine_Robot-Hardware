@@ -131,8 +131,8 @@ def run_code_screen(email=None):
                                 break
 
                     # Check submit/clear buttons
-                    submit_rect = pygame.Rect(width // 2 + 20, height - 80, 150, 40)
-                    clear_rect = pygame.Rect(width // 2 - 170, height - 80, 150, 40)
+                    submit_rect = pygame.Rect(width // 2 + 20, height - 70, 150, 35)
+                    clear_rect = pygame.Rect(width // 2 - 170, height - 70, 150, 35)
 
                     if submit_rect.collidepoint(mouse_x, mouse_y) and current_input:
                         logging.info(f"(screen.py): Code entered: {current_input}")
@@ -157,37 +157,40 @@ def run_code_screen(email=None):
             # Draw screen
             screen.fill((255, 255, 255))
 
-            # Draw background interface
+            ##### LAYER 1: Background interface #####
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
             else:
-                pygame.draw.rect(screen, (0, 120, 255), (0, 0, width, 60))
+                # Fallback: draw blue header and footer
+                pygame.draw.rect(screen, (0, 120, 255), (0, 0, width, 50))
                 pygame.draw.rect(screen, (0, 120, 255), (0, height - 40, width, 40))
 
-            # Draw title in blue header
-            title = title_font.render("Enter Verification Code", True, (255, 255, 255))
-            title_rect = title.get_rect(center=(width // 2, 30))
-            screen.blit(title, title_rect)
-
-            # Draw email info if provided
-            if email:
-                email_text = message_font.render(f"{email}. Please enter your code:", True, (50, 50, 50))
-                email_rect = email_text.get_rect(center=(width // 2, 70))
-                screen.blit(email_text, email_rect)
-
-            # Draw code input display (in the input box area)
-            code_display = font.render(current_input if current_input else "_ _ _ _ _ _", True, (0, 0, 0))
-            code_rect = code_display.get_rect(center=(width // 2, 115))
-            screen.blit(code_display, code_rect)
-
-            # Draw numpad buttons (overlay images at 0,0)
+            ##### LAYER 2: Numpad buttons (overlay images at 0,0) #####
             button_names = [name for name in images.keys() if name.startswith('button_')]
             for name in button_names:
                 screen.blit(images[name], (0, 0))
 
-            # Draw submit/clear buttons at bottom
-            submit_rect = pygame.Rect(width // 2 + 20, height - 80, 150, 40)
-            clear_rect = pygame.Rect(width // 2 - 170, height - 80, 150, 40)
+            ##### LAYER 3: Text elements (drawn on top of buttons) #####
+
+            # Title in blue header area (y = 25, centered)
+            title = title_font.render("Enter Verification Code", True, (255, 255, 255))
+            title_rect = title.get_rect(center=(width // 2, 25))
+            screen.blit(title, title_rect)
+
+            # Email info below header (y = 60, above the input box)
+            if email:
+                email_text = message_font.render(f"{email}, please enter your code:", True, (0, 0, 0))
+                email_rect = email_text.get_rect(center=(width // 2, 60))
+                screen.blit(email_text, email_rect)
+
+            # Code display inside the input box (y = 125, centered in the box area)
+            code_display = font.render(current_input if current_input else "_ _ _ _ _ _", True, (0, 0, 0))
+            code_rect = code_display.get_rect(center=(width // 2, 125))
+            screen.blit(code_display, code_rect)
+
+            ##### LAYER 4: Submit/Clear buttons (above blue footer) #####
+            submit_rect = pygame.Rect(width // 2 + 20, height - 70, 150, 35)
+            clear_rect = pygame.Rect(width // 2 - 170, height - 70, 150, 35)
 
             pygame.draw.rect(screen, (0, 150, 0), submit_rect)
             pygame.draw.rect(screen, (200, 50, 50), clear_rect)
