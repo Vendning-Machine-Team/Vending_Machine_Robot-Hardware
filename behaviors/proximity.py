@@ -29,7 +29,7 @@ import utilities.config as config
 
 ##### import necessary movement functions #####
 
-from movement.mecanum import *
+from behaviors.mecanum import *
 from utilities.motors import stop_all
 from utilities.gps import initialize_gps, read_nmea_line, parse_gprmc, get_current_coordinates
 

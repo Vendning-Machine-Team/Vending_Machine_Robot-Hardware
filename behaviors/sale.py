@@ -28,7 +28,7 @@ import utilities.config as config
 
 ##### import necessary movement / utility functions #####
 
-from movement.lid import open_close_cycle
+from behaviors.lid import open_close_cycle
 from utilities.motors import stop_all
 from utilities.internet import parse_customer_queue_command
 

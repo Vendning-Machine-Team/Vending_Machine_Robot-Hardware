@@ -28,7 +28,7 @@ import utilities.config as config
 
 ##### import necessary movement functions #####
 
-from movement.mecanum import *
+from behaviors.mecanum import *
 from utilities.motors import stop_all
 
 

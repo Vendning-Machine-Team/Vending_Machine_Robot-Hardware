@@ -51,17 +51,17 @@ DETECTION_OUTPUT_LAYER = None
 
 ##### movement functions #####
 
-from movement.mecanum import *
+from behaviors.mecanum import *
 from utilities.motors import initialize_motor_controllers, stop_all, run_back_motors
 
 ##### customer tracking functions #####
 
-from movement.customer_finder import approach_largest_person
-from movement.proximity import check_distance_from_home, return_to_home
+from behaviors.customer_finder import approach_largest_person
+from behaviors.proximity import check_distance_from_home, return_to_home
 
 ##### sale functions #####
 
-from movement.sale import handle_sale
+from behaviors.sale import handle_sale
 
 #atexit.register(stop_all)
 
