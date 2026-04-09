@@ -10,6 +10,10 @@ __pycache__/
 
 # ignore virtual environment
 venv/
+.venv/
+
+# ignore python installer
+python38.exe
 
 # ignore log files
 *.log
