@@ -171,7 +171,7 @@ def run_code_screen(email=None):
 
             # Draw email info if provided
             if email:
-                email_text = message_font.render(f"Code sent to: {email}", True, (50, 50, 50))
+                email_text = message_font.render(f"{email}. Please enter your code:", True, (50, 50, 50))
                 email_rect = email_text.get_rect(center=(width // 2, 70))
                 screen.blit(email_text, email_rect)
 
