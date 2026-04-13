@@ -21,7 +21,7 @@
 
 ## Roles
 **[Matthew Beck](https://github.com/matthewthomasbeck):**
-- Software Architect *(architected codebase, set up robot's runtime environment, and oversaw the design and debugging of other engineers code)*
+- Software Architect *(architected codebase, set up robot's runtime environment, and oversaw the design and debugging of other engineer's code)*
 - Hardware Integrater *(itegrated gps, maestro, camera, AI chip, and motor controllers into the computer's firmware and wrote integration code for other engineers to use)*
 - Software Developer *(made AI model code interface, developed socket integration for backend communication, wrote purchase sequence algorithm, wrote robot return-to-home algorithm, and wrote mecanum wheel logic)*
 
