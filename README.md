@@ -32,7 +32,7 @@
 - Software Developer (wrote AI customer finding logic, wrote AI customer following logic, and tuned movement logic)
 
 **[Cayden Hutcheson](https://github.com/cayden-h):**
-- Software Developer (developed lid open-close for purchase sequence, collaborated to integrate screen into purchase sequence, and tuned servos)
+- Software Developer (developed lid open-close for purchase sequence, collaborated to integrate screen into purchase sequence, and tuned servos, collaborated to integrate backend)
 
 ## Basic Information
 lorem ipsum etc etc
