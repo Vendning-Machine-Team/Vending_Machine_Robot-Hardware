@@ -1,7 +1,7 @@
 ![Robot In Motion]()
 
 # [Vending Machine Robot](https://github.com/orgs/Vendning-Machine-Team/repositories) - AI / Robotic Behavior Team
-### By [Matthew Beck](https://www.linkedin.com/in/matthewthomasbeck/), [Samuel Saylor](), [Cayden Christenson](), and [Tri Nguyen](https://www.linkedin.com/in/tri-nguyen2/)
+### By [Matthew Beck](https://www.linkedin.com/in/matthewthomasbeck/), [Samuel Saylor](), [Cayden Hutcheson](https://www.linkedin.com/in/cayden-hutcheson110), and [Tri Nguyen](https://www.linkedin.com/in/tri-nguyen2/)
 
 **Please consider:** if you like it, **star it!**
 
