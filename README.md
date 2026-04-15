@@ -15,9 +15,9 @@
 - **Dual H-Bridge Motor Driver Module** *(motor controllers)*
 
 **Software**
-- **Language:** *Python*
-- **Libraries:** *threading, queue, time, os, atexit, socket, logging, collections.deque, subprocess, signal, sys, json, math, random, numpy, opencv-python, openvino, pygame, smbus, RPi.GPIO, pigpio, pyserial*
-- **Toolkits:** *OpenVino*
+- **Language:** Python
+- **Libraries:** threading, queue, time, os, atexit, socket, logging, collections.deque, subprocess, signal, sys, json, math, random, numpy, opencv-python, openvino, pygame, smbus, RPi.GPIO, pigpio, pyserial
+- **Toolkits:** OpenVino
 
 ## Roles
 **Matthew Beck ([LinkedIn](https://www.linkedin.com/in/matthewthomasbeck/) | [GitHub](https://github.com/matthewthomasbeck) | [Website](https://www.matthewthomasbeck.com)):**
@@ -26,13 +26,13 @@
 - Software Engineer *(made AI model code interface, developed socket integration for backend communication, wrote purchase sequence algorithm, wrote robot return-to-home algorithm, and wrote mecanum wheel logic)*
 
 **Samuel Saylor ([LinkedIn](https://www.linkedin.com/in/samuel-saylor-319402382/) | [GitHub](https://github.com/SamuelSaylor)):**
-- Software Engineer (collaborated to integrate screen into purchase sequence and collaborated to tune lid open-close logic)
+- Software Engineer *(collaborated to integrate screen into purchase sequence and collaborated to tune lid open-close logic)*
 
 **Tri Nguyen ([LinkedIn](https://www.linkedin.com/in/tri-nguyen2/) | [GitHub](https://github.com/Tringuyen2007)):**
-- Software Engineer (wrote AI customer finding logic, wrote AI customer following logic, and tuned movement logic)
+- Software Engineer *(wrote AI customer finding logic, wrote AI customer following logic, and tuned movement logic)*
 
 **Cayden Hutcheson ([LinkedIn](https://www.linkedin.com/in/cayden-hutcheson110) | [GitHub](https://github.com/cayden-h)):**
-- Software Engineer (developed lid open-close for purchase sequence, collaborated to integrate screen into purchase sequence, and calibrated servos)
+- Software Engineer *(developed lid open-close for purchase sequence, collaborated to integrate screen into purchase sequence, and calibrated servos)*
 
 ## Basic Information
 The hardware section of the project focused on transforming a collection of individual electrical components into a fully functional, interactive robot. This involved carefully integrating motors, sensors, microcontrollers, and power systems so that each part could communicate and operate in synchronization. Significant collaboration with the [engineering team](https://github.com/Vendning-Machine-Team/Vending_Machine_Robot-Parts) was required for adequate wiring, power distribution, and physical assembly to ensure reliability during operation. The team also had to troubleshoot issues such as signal interference, inconsistent motor performance, and battery limitations, refining the system until all components worked cohesively.
