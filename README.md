@@ -20,16 +20,32 @@
 - **Toolkits:** OpenVino
 
 ## Roles
+<p align="left">
+  <img src="images/matthew.jpg" width="20%" alt="Matthew Beck" />
+</p>
+
 **Matthew Beck ([LinkedIn](https://www.linkedin.com/in/matthewthomasbeck/) | [GitHub](https://github.com/matthewthomasbeck) | [Website](https://www.matthewthomasbeck.com)):**
 - Software Architect *(architected codebase, set up robot's runtime environment, and oversaw the design and debugging of other engineer's code)*
 - Hardware Integrater *(itegrated gps, maestro, camera, AI chip, and motor controllers into the computer's firmware and wrote integration code for other engineers to use)*
 - Software Engineer *(made AI model code interface, developed socket integration for backend communication, wrote purchase sequence algorithm, wrote robot return-to-home algorithm, and wrote mecanum wheel logic)*
 
+<p align="left">
+  <img src="images/samuel.jpg" width="20%" alt="Samuel Saylor" />
+</p>
+
 **Samuel Saylor ([LinkedIn](https://www.linkedin.com/in/samuel-saylor-319402382/) | [GitHub](https://github.com/SamuelSaylor)):**
 - Software Engineer *(collaborated to integrate screen into purchase sequence and collaborated to tune lid open-close logic)*
 
+<p align="left">
+  <img src="images/tri.jpg" width="20%" alt="Tri Nguyen" />
+</p>
+
 **Tri Nguyen ([LinkedIn](https://www.linkedin.com/in/tri-nguyen2/) | [GitHub](https://github.com/Tringuyen2007)):**
 - Software Engineer *(wrote AI customer finding logic, wrote AI customer following logic, and tuned movement logic)*
+
+<p align="left">
+  <img src="images/cayden.jpg" width="20%" alt="Cayden Hutcheson" />
+</p>
 
 **Cayden Hutcheson ([LinkedIn](https://www.linkedin.com/in/cayden-hutcheson110) | [GitHub](https://github.com/cayden-h)):**
 - Software Engineer *(developed lid open-close for purchase sequence, collaborated to integrate screen into purchase sequence, and calibrated servos)*
