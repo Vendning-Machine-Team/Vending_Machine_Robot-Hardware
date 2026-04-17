@@ -190,16 +190,29 @@ def approach_largest_person(target_cx,        # PARAM: horizontal pixel center o
 ########## FIND CUSTOMER FUNCTION ##########
 
 def find_customer():
+    """
+    Called after force_sale() times out on a person (MAX_ENGAGEMENT_SECONDS expired)
+    or whenever the robot needs to find a new customer.
 
-    # step 1. rotate some random angle (180 degrees ± 90 degrees)
-    
+    Step 1 — rotate the robot 180° in place using timed rotation.
+             rotate_left() is called for SPIN_DURATION seconds at SPIN_INTENSITY
+             to achieve approximately 180°. Both values must be tuned on real
+             hardware since there is no IMU or encoder feedback — the robot
+             cannot verify the actual angle turned.
 
-    # step 2. move in some direction until person is detected
+    Step 2 — hand off to the approach pipeline to find and close in on the next person.
+             # TODO: we can either call approach_largest_person() directly in here
+             #       or handle the handoff in the driver class — decision TBD pending driver class implementation
+    """
 
+    # step 1 — spin 180° in place using timed rotation
+    rotate_left(config.FIND_CUSTOMER_CONFIG['SPIN_INTENSITY']) # calls rotate_left() from behaviors/mecanum.py; sets all 4 wheels clockwise to spin the robot body left in place at SPIN_INTENSITY PWM
+    time.sleep(config.FIND_CUSTOMER_CONFIG['SPIN_DURATION'])   # holds the spin for SPIN_DURATION seconds; this is the only mechanism for angle control — no IMU available; tune SPIN_DURATION in config until ~180° is achieved on real hardware
+    stop_all()                                                  # writes PWM duty 0 to all four GPIO motor pins via pigpio daemon — halts the spin after SPIN_DURATION seconds have elapsed
 
-    # step 3. lock onto person (basically the function above)
-
-    pass
+    # step 2 —
+    # TODO: we can either call approach_largest_person() directly in here
+    #       or handle the handoff in the driver class — decision TBD pending driver class implementation
 
 def force_sale(person_detected, target_cx, largest_box_area):
     # PARAM: person_detected   — bool; True if the inference model detected at least one person in the current frame
@@ -303,8 +316,8 @@ def force_sale(person_detected, target_cx, largest_box_area):
         if _last_known_offset <= 0: # frozen _last_known_offset is negative or zero → person was last seen LEFT of center or exactly centered; rotate left to scan in the direction they were last heading
 
             rotate_left(config.FORCE_SALE_CONFIG['ROTATE_INTENSITY']) # calls rotate_left() from behaviors/mecanum.py; sets all 4 wheels clockwise to spin the robot body left in place at ROTATE_INTENSITY (~20% PWM); continues spinning every frame until person_detected=True again on a future frame
-            logging.debug( # logs STATE 3A blind rotate left: the frozen last_known_offset value that chose this direction and the ROTATE_INTENSITY being applied
-                f"(customer_finder.py): FORCE_SALE ROTATE LEFT — person lost. "
+            logging.debug( # logs STATE 3A: human-readable out-of-frame message + the frozen last_known_offset that chose left and the ROTATE_INTENSITY being applied
+                f"(customer_finder.py): FORCE_SALE — person out of frame, turning LEFT to re-acquire. "
                 f"last_known_offset={_last_known_offset:+d}px <= 0, "
                 f"intensity={config.FORCE_SALE_CONFIG['ROTATE_INTENSITY']}.\n"
             )
@@ -312,8 +325,8 @@ def force_sale(person_detected, target_cx, largest_box_area):
         else: # frozen _last_known_offset is positive → person was last seen RIGHT of center; rotate right to scan in the direction they were last heading
 
             rotate_right(config.FORCE_SALE_CONFIG['ROTATE_INTENSITY']) # calls rotate_right() from behaviors/mecanum.py; sets all 4 wheels counterclockwise to spin the robot body right in place at ROTATE_INTENSITY (~20% PWM); continues spinning every frame until person_detected=True again on a future frame
-            logging.debug( # logs STATE 3B blind rotate right: the frozen last_known_offset value that chose this direction and the ROTATE_INTENSITY being applied
-                f"(customer_finder.py): FORCE_SALE ROTATE RIGHT — person lost. "
+            logging.debug( # logs STATE 3B: human-readable out-of-frame message + the frozen last_known_offset that chose right and the ROTATE_INTENSITY being applied
+                f"(customer_finder.py): FORCE_SALE — person out of frame, turning RIGHT to re-acquire. "
                 f"last_known_offset={_last_known_offset:+d}px > 0, "
                 f"intensity={config.FORCE_SALE_CONFIG['ROTATE_INTENSITY']}.\n"
             )

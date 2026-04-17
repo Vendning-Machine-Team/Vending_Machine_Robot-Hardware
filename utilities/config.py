@@ -84,6 +84,16 @@ FORCE_SALE_CONFIG = {
 }
 
 
+########## FIND CUSTOMER BEHAVIOR ##########
+
+##### spin duration and intensity for 180 degree turn when searching for a new customer #####
+
+FIND_CUSTOMER_CONFIG = {
+    'SPIN_INTENSITY': 3,    # PWM intensity for the 180° turn — needs hardware tuning on real floor surface; higher = faster spin, lower = slower; range 1-10
+    'SPIN_DURATION': 1.5,   # seconds to spin at SPIN_INTENSITY to achieve approximately 180° turn — needs hardware tuning; increase if robot undershoots, decrease if overshoots
+}
+
+
 
 
 
