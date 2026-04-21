@@ -31,6 +31,7 @@ import utilities.config as config
 from behaviors.lid import open_close_cycle
 from utilities.motors import stop_all
 from utilities.internet import parse_customer_queue_command
+from utilities.screen import run_code_screen, show_success_screen, show_error_screen
 
 
 
@@ -49,9 +50,6 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
 
     if codes is not None: # if codes are legit...
 
-        #TODO We need to call screen.py functions to display the sale interface, asking the email to enter their code.
-        #TODO We need to also think about what will happen if there are multiple codes received from the backend at once.
-
         # step 0. set sale in progress to True and stop all movement
         sale_in_progress = True # set sale in progress to True
         stopped_successfully = stop_all()
@@ -69,7 +67,6 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
             return sale_in_progress
 
         # step 2. display sale interface and ask user to enter code
-        #TODO sam implement pls
         entered_code = None
         sale_start_time = time.monotonic() # start timeout timer once sale begins
 
@@ -86,19 +83,24 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
 
             logging.info(f"(control_logic.py): Checking code entered by user...\n")
 
-            # if no user input yet, wait without consuming an attempt (prevents immediate 3x failure)
+            # if no user input yet, prompt for code entry
             if entered_code is None:
 
-                logging.info(f"(control_logic.py): No code entered yet. Waiting for user to enter code...\n")
-                time.sleep(0.1)
-                continue
+                logging.info(f"(control_logic.py): Prompting user to enter code...\n")
+                entered_code = run_code_screen(email=email)
+                
+                # if user cancelled or timeout occurred during input
+                if entered_code is None:
+                    logging.info(f"(control_logic.py): User did not enter code. Waiting for retry or timeout.\n")
+                    time.sleep(0.1)
+                    continue
 
             if entered_code == code: # if the entered code is correct...
 
                 logging.info(f"(control_logic.py): Correct code entered. Lid will open and customer can grab purchase.\n")
 
-                # steps 3.0 display success message
-                #TODO sam implement pls
+                # step 3.0 display success message
+                show_success_screen("Lid is opening!")
 
                 # step 3.1 call lid.py open_close_cycle() to open the lid and let
                 open_close_cycle() # open the lid and let the customer grab their purchase (unfortunately uses honor system atm)
@@ -113,8 +115,8 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
 
                 logging.info(f"(control_logic.py): Incorrect code entered. {config.SALE_CONFIG['MAX_CODE_ATTEMPTS'] - failed_attempts} attempts remaining.\n")
 
-                # steps 3.0 display error message with remaining attempts
-                #TODO sam implement pls
+                # step 3.0 display error message with remaining attempts
+                show_error_screen("Please try again", config.SALE_CONFIG['MAX_CODE_ATTEMPTS'] - failed_attempts - 1)
 
                 failed_attempts += 1
                 entered_code = None # reset so UI can prompt again
@@ -124,7 +126,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
             logging.info(f"(control_logic.py): Incorrect code entered {config.SALE_CONFIG['MAX_CODE_ATTEMPTS']} times. Sale will not be completed.\n")
 
             # step 6.0 display error message
-            #TODO sam implement pls
+            show_error_screen("Too many attempts. Sale cancelled.")
 
             sale_in_progress = False
 

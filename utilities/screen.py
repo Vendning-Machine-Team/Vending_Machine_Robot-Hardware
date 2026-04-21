@@ -42,6 +42,24 @@ width = SCREEN_CONFIG['WIDTH']
 fps = SCREEN_CONFIG['FPS']
 
 
+########## BUTTON RECTS AND MAPPING ##########
+
+BUTTON_CONFIGS = {
+    'button_zero': {'num': '0'},
+    'button_one': {'num': '1'},
+    'button_two': {'num': '2'},
+    'button_three': {'num': '3'},
+    'button_four': {'num': '4'},
+    'button_five': {'num': '5'},
+    'button_six': {'num': '6'},
+    'button_seven': {'num': '7'},
+    'button_eight': {'num': '8'},
+    'button_nine': {'num': '9'},
+    'BackSpaceKey': {'action': 'backspace'},
+    'EnterKey': {'action': 'enter'},
+}
+
+
 
 
 
@@ -53,7 +71,7 @@ fps = SCREEN_CONFIG['FPS']
 ########## PYGAME INITIALIZATION ##########
 
 def initialize_screen():
-    """Initialize pygame screen and load images"""
+    """Initialize pygame screen and load images from screen_assets"""
 
     pygame.init()
     pygame.font.init()
@@ -63,12 +81,14 @@ def initialize_screen():
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Vending Machine")
 
-    # Use relative path from this file's location to find image_assets
+    # Use relative path from this file's location to find screen_assets
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    image_folder = os.path.join(project_root, "image_assets")
+    image_folder = os.path.join(project_root, "screen_assets")
 
     images = {}
+    button_rects = {}
+    
     if os.path.exists(image_folder):
         for filename in os.listdir(image_folder):
             if filename.endswith(".png"):
@@ -76,35 +96,32 @@ def initialize_screen():
                 img_path = os.path.join(image_folder, filename)
                 img = pygame.image.load(img_path).convert_alpha()
                 images[name] = img
+                
+                # Store rect for collision detection if it's a button or control
+                if name in BUTTON_CONFIGS or name == 'screen_interface':
+                    button_rects[name] = img.get_rect(topleft=(0, 0))
+    else:
+        logging.warning(f"(screen.py): screen_assets folder not found at {image_folder}")
 
-    return screen, images
+    return screen, images, button_rects
 
 
-########## CODE ENTRY SCREEN ##########
+########## TOUCHSCREEN CODE ENTRY ##########
 
 def run_code_screen(email=None):
     """
-    Display code entry screen with numpad.
-    Shows the email the code was sent to.
+    Display code entry screen with touchscreen numpad.
+    All buttons are image-based from screen_assets.
     Returns the entered code or None if cancelled.
     """
     try:
-        screen, images = initialize_screen()
+        screen, images, button_rects = initialize_screen()
 
         current_input = ""
-
         font = pygame.font.SysFont(None, 48)
         title_font = pygame.font.SysFont(None, 42)
         message_font = pygame.font.SysFont(None, 32)
         clock = pygame.time.Clock()
-
-        # Number mapping for button images
-        num_map = {
-            'one': '1', 'two': '2', 'three': '3',
-            'four': '4', 'five': '5', 'six': '6',
-            'seven': '7', 'eight': '8', 'nine': '9',
-            'zero': '0'
-        }
 
         running = True
 
@@ -115,45 +132,35 @@ def run_code_screen(email=None):
                     return None
 
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_x, mouse_y = event.pos
-
-                    # Check numpad buttons (image-based)
-                    button_names = [name for name in images.keys() if name.startswith('button_')]
-                    for name in button_names:
-                        button_image = images[name]
-                        if (0 <= mouse_x < button_image.get_width() and
-                            0 <= mouse_y < button_image.get_height()):
-                            pixel_alpha = button_image.get_at((mouse_x, mouse_y))[3]
-                            if pixel_alpha != 0:
-                                num = num_map[name.split('_')[1]]
-                                if len(current_input) < 10:  # max 10 digits
-                                    current_input += num
-                                    print(f"Code input: {current_input}")
-                                break
-
-                    # Check submit/clear buttons (in blue footer)
-                    submit_rect = pygame.Rect(width // 2 + 20, height - 55, 150, 40)
-                    clear_rect = pygame.Rect(width // 2 - 170, height - 55, 150, 40)
-
-                    if submit_rect.collidepoint(mouse_x, mouse_y) and current_input:
-                        logging.info(f"(screen.py): Code entered: {current_input}")
-                        pygame.quit()
-                        return current_input
-                    elif clear_rect.collidepoint(mouse_x, mouse_y):
-                        current_input = ""
-
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_BACKSPACE:
-                        current_input = current_input[:-1]
-                    elif event.key == pygame.K_RETURN:
-                        if current_input:
-                            logging.info(f"(screen.py): Code entered: {current_input}")
-                            pygame.quit()
-                            return current_input
-                    elif event.key == pygame.K_ESCAPE:
-                        current_input = ""
-                    elif event.unicode.isdigit() and len(current_input) < 10:  # max 10 digits
-                        current_input += event.unicode
+                    mouse_pos = event.pos
+                    
+                    # Check which button was touched
+                    for button_name, config in BUTTON_CONFIGS.items():
+                        if button_name in images:
+                            button_img = images[button_name]
+                            button_rect = button_img.get_rect(topleft=(0, 0))
+                            
+                            # Check if touch is within button bounds
+                            if button_rect.collidepoint(mouse_pos):
+                                # Check alpha channel to see if user touched transparent area
+                                if 0 <= mouse_pos[0] < button_rect.width and 0 <= mouse_pos[1] < button_rect.height:
+                                    try:
+                                        pixel_alpha = button_img.get_at((mouse_pos[0], mouse_pos[1]))[3]
+                                        if pixel_alpha > 0:  # Non-transparent pixel
+                                            if 'num' in config:
+                                                if len(current_input) < 10:
+                                                    current_input += config['num']
+                                                    logging.debug(f"(screen.py): Code input: {current_input}")
+                                            elif config.get('action') == 'backspace':
+                                                current_input = current_input[:-1]
+                                                logging.debug(f"(screen.py): Backspace pressed. Code: {current_input}")
+                                            elif config.get('action') == 'enter':
+                                                if current_input:
+                                                    logging.info(f"(screen.py): Code entered: {current_input}")
+                                                    pygame.quit()
+                                                    return current_input
+                                    except IndexError:
+                                        pass
 
             # Draw screen
             screen.fill((255, 255, 255))
@@ -162,44 +169,28 @@ def run_code_screen(email=None):
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
 
-            # Draw expanded blue footer (covers bottom area for buttons)
-            pygame.draw.rect(screen, (0, 120, 255), (0, height - 80, width, 80))
-
-            ##### LAYER 2: Numpad buttons (overlay images at 0,0) #####
-            button_names = [name for name in images.keys() if name.startswith('button_')]
-            for name in button_names:
-                screen.blit(images[name], (0, 0))
+            ##### LAYER 2: All button overlays (drawn at their positioned locations) #####
+            for button_name in BUTTON_CONFIGS.keys():
+                if button_name in images:
+                    screen.blit(images[button_name], (0, 0))
 
             ##### LAYER 3: Text elements (drawn on top of buttons) #####
 
-            # Title in blue header area (y = 25, centered)
+            # Title text
             title = title_font.render("Enter Verification Code", True, (255, 255, 255))
             title_rect = title.get_rect(center=(width // 2, 25))
             screen.blit(title, title_rect)
 
-            # Email info in blue header area (y = 45, inside blue border)
+            # Email info text
             if email:
                 email_text = message_font.render(f"{email}, please enter your code:", True, (255, 255, 255))
                 email_rect = email_text.get_rect(center=(width // 2, 45))
                 screen.blit(email_text, email_rect)
 
-            # Code display inside the input box (y = 125, centered in the box area)
+            # Code display
             code_display = font.render(current_input, True, (0, 0, 0))
             code_rect = code_display.get_rect(center=(width // 2, 125))
             screen.blit(code_display, code_rect)
-
-            ##### LAYER 4: Submit/Clear buttons (inside blue footer) #####
-            submit_rect = pygame.Rect(width // 2 + 20, height - 55, 150, 40)
-            clear_rect = pygame.Rect(width // 2 - 170, height - 55, 150, 40)
-
-            pygame.draw.rect(screen, (0, 180, 0), submit_rect)  # green submit
-            pygame.draw.rect(screen, (220, 60, 60), clear_rect)  # red clear
-
-            submit_text = message_font.render("SUBMIT", True, (255, 255, 255))
-            clear_text = message_font.render("CLEAR", True, (255, 255, 255))
-
-            screen.blit(submit_text, submit_text.get_rect(center=submit_rect.center))
-            screen.blit(clear_text, clear_text.get_rect(center=clear_rect.center))
 
             pygame.display.flip()
             clock.tick(fps)
@@ -209,7 +200,6 @@ def run_code_screen(email=None):
 
     except Exception as e:
         logging.error(f"(screen.py): Code screen error: {e}")
-        print(f"Code screen error: {e}")
         return None
 
 
@@ -230,7 +220,7 @@ def show_error_screen(message="Please try again", attempts_left=0):
 def _show_message(title, message, color=(0, 150, 0), duration=3):
     """Display a message screen for a specified duration."""
     try:
-        screen, images = initialize_screen()
+        screen, images, _ = initialize_screen()
 
         title_font = pygame.font.SysFont(None, 56)
         message_font = pygame.font.SysFont(None, 36)
@@ -251,9 +241,6 @@ def _show_message(title, message, color=(0, 150, 0), duration=3):
 
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
-            else:
-                pygame.draw.rect(screen, (0, 120, 255), (0, 0, width, 60))
-                pygame.draw.rect(screen, (0, 120, 255), (0, height - 40, width, 40))
 
             title_text = title_font.render(title, True, color)
             title_rect = title_text.get_rect(center=(width // 2, height // 2 - 30))
