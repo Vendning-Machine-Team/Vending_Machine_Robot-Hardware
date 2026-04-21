@@ -148,7 +148,7 @@ def run_code_screen(email=None):
                                         pixel_alpha = button_img.get_at((mouse_pos[0], mouse_pos[1]))[3]
                                         if pixel_alpha > 0:  # Non-transparent pixel
                                             if 'num' in config:
-                                                if len(current_input) < 10:
+                                                if len(current_input) < 4:
                                                     current_input += config['num']
                                                     logging.debug(f"(screen.py): Code input: {current_input}")
                                             elif config.get('action') == 'backspace':
