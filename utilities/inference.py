@@ -28,7 +28,7 @@ import logging # import logging for logging messages
 
 ##### get physical robot dependencies #####
 
-from openvino.runtime import Core  # import OpenVINO runtime
+from openvino import Core  # import OpenVINO runtime
 import cv2 # import OpenCV for image processing
 
 ########## CREATE DEPENDENCIES ##########
