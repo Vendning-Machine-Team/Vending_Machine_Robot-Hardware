@@ -82,7 +82,7 @@ def initialize_screen():
 
     pygame.mouse.set_visible(True)
 
-    screen = pygame.display.set_mode((width, height))
+    screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
     pygame.display.set_caption("Vending Machine")
 
     # Use relative path from this file's location to find screen_assets
@@ -284,9 +284,6 @@ def show_qr_screen():
 
             screen.fill((255, 255, 255))
 
-            if 'screen_interface' in images:
-                screen.blit(images['screen_interface'], (0, 0))
-
             if 'qr' in images:
                 qr_img = images['qr']
                 qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
@@ -294,7 +291,7 @@ def show_qr_screen():
             else:
                 logging.warning("(screen.py): qr.png not found in screen_assets.\n")
 
-            label = font.render("Scan to purchase", True, (255, 255, 255))
+            label = font.render("Scan to purchase", True, (0, 0, 0))
             screen.blit(label, label.get_rect(center=(width // 2, height - 40)))
 
             pygame.display.flip()
