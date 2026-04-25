@@ -64,7 +64,7 @@ PERSON_DETECTION_CONFIG = {
 ##### steering and stopping thresholds for approach logic #####
 
 PERSON_APPROACH_CONFIG = {
-    'FRAME_WIDTH': 1152,        # must match CAMERA_CONFIG['WIDTH']
+    'FRAME_WIDTH': 640,         # must match CAMERA_CONFIG['WIDTH']
     'STOP_AREA': 42000,         # stop when person's box area reaches this threshold
     'DEADBAND': 92,             # horizontal pixel deadband around frame center
     'INTENSITY': 5,             # default motor intensity during approach
@@ -115,12 +115,12 @@ CAMERA_CONFIG = {
     'PIXEL_SIZE_UM': 1.4,  # pixel size in micrometers
     'DEPTH_OF_FIELD': 0.1,  # depth of field distance in meters
     'APERTURE_RATIO': 1.8,
-    'WIDTH': 1152, # width of the camera image (input for CNN)
-    'HEIGHT': 648, # height of the camera image (input for CNN)
+    'WIDTH': 640, # width of the camera image (input for CNN)
+    'HEIGHT': 480, # height of the camera image (input for CNN)
     'FRAME_RATE': 30, # frame rate of the camera in frames per second
     'CROP_FRACTION': 1.0, # fraction of the image to crop from each side (0.0 to 1.0)
-    'OUTPUT_WIDTH': 1152, # width of the ML image (output for CNN)
-    'OUTPUT_HEIGHT': 648, # height of the ML image (output for CNN)
+    'OUTPUT_WIDTH': 640, # width of the ML image (output for CNN)
+    'OUTPUT_HEIGHT': 480, # height of the ML image (output for CNN)
 }
 
 
