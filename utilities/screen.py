@@ -112,11 +112,11 @@ def initialize_screen():
 
 ########## TOUCHSCREEN CODE ENTRY ##########
 
-def run_code_screen(email=None):
+def run_code_screen(email=None, code=None, max_attempts=3):
     """
-    Display code entry screen with touchscreen numpad.
-    All buttons are image-based from screen_assets.
-    Returns the entered code or None if cancelled.
+    Display code entry screen. Handles retries and error display internally
+    without ever closing and reopening the screen between attempts.
+    Returns the entered code if correct, or None if max attempts exceeded.
     """
     logging.info(f"(screen.py): Displaying code entry screen for '{email}'.\n")
     try:
@@ -126,85 +126,98 @@ def run_code_screen(email=None):
         font = pygame.font.SysFont(None, 48)
         title_font = pygame.font.SysFont(None, 42)
         message_font = pygame.font.SysFont(None, 32)
+        error_font = pygame.font.SysFont(None, 36)
         clock = pygame.time.Clock()
 
-        running = True
+        failed_attempts = 0
+        error_message = None
+        error_until = 0.0
+        input_locked = False
 
-        while running:
+        while True:
+            now = time.time()
+
+            # clear error overlay and reset input after 2 seconds
+            if input_locked and now >= error_until:
+                if failed_attempts >= max_attempts:
+                    pygame.quit()
+                    return None
+                input_locked = False
+                error_message = None
+                current_input = ""
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return None
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
+                elif event.type == pygame.MOUSEBUTTONDOWN and not input_locked:
                     mouse_pos = event.pos
-                    
-                    # Check which button was touched
-                    for button_name, config in BUTTON_CONFIGS.items():
+
+                    for button_name, btn_config in BUTTON_CONFIGS.items():
                         if button_name in images:
                             button_img = images[button_name]
                             button_rect = button_img.get_rect(topleft=(0, 0))
-                            
-                            # Check if touch is within button bounds
+
                             if button_rect.collidepoint(mouse_pos):
-                                # Check alpha channel to see if user touched transparent area
                                 if 0 <= mouse_pos[0] < button_rect.width and 0 <= mouse_pos[1] < button_rect.height:
                                     try:
                                         pixel_alpha = button_img.get_at((mouse_pos[0], mouse_pos[1]))[3]
-                                        if pixel_alpha > 0:  # Non-transparent pixel
-                                            if 'num' in config:
+                                        if pixel_alpha > 0:
+                                            if 'num' in btn_config:
                                                 if len(current_input) < 4:
-                                                    current_input += config['num']
+                                                    current_input += btn_config['num']
                                                     logging.debug(f"(screen.py): Code input: {current_input}")
-                                            elif config.get('action') == 'backspace':
+                                            elif btn_config.get('action') == 'backspace':
                                                 current_input = current_input[:-1]
-                                                logging.debug(f"(screen.py): Backspace pressed. Code: {current_input}")
-                                            elif config.get('action') == 'enter':
+                                            elif btn_config.get('action') == 'enter':
                                                 if current_input:
-                                                    logging.info(f"(screen.py): Code entered: {current_input}")
-                                                    pygame.quit()
-                                                    return current_input
+                                                    if code is None or current_input == code:
+                                                        logging.info(f"(screen.py): Correct code entered.\n")
+                                                        pygame.quit()
+                                                        return current_input
+                                                    else:
+                                                        failed_attempts += 1
+                                                        attempts_left = max_attempts - failed_attempts
+                                                        if attempts_left > 0:
+                                                            error_message = f"Incorrect code — {attempts_left} attempt{'s' if attempts_left != 1 else ''} left."
+                                                        else:
+                                                            error_message = "Too many attempts. Sale cancelled."
+                                                        error_until = time.time() + 2.0
+                                                        input_locked = True
+                                                        logging.info(f"(screen.py): Wrong code. {attempts_left if attempts_left > 0 else 0} attempts left.\n")
                                     except IndexError:
                                         pass
 
             # Draw screen
             screen.fill((255, 255, 255))
 
-            ##### LAYER 1: Background interface #####
             if 'screen_interface' in images:
                 screen.blit(images['screen_interface'], (0, 0))
 
-            ##### LAYER 2: All button overlays (drawn at their positioned locations) #####
             for button_name in BUTTON_CONFIGS.keys():
                 if button_name in images:
                     screen.blit(images[button_name], (0, 0))
 
-            ##### LAYER 3: Text elements (drawn on top of buttons) #####
-
-            # Title text
             title = title_font.render("Enter Verification Code", True, (255, 255, 255))
-            title_rect = title.get_rect(center=(width // 2, 25))
-            screen.blit(title, title_rect)
+            screen.blit(title, title.get_rect(center=(width // 2, 25)))
 
-            # Email info text
             if email:
                 email_text = message_font.render(f"{email}, please enter your code:", True, (255, 255, 255))
-                email_rect = email_text.get_rect(center=(width // 2, 45))
-                screen.blit(email_text, email_rect)
+                screen.blit(email_text, email_text.get_rect(center=(width // 2, 45)))
 
-            # Code display
-            code_display = font.render(current_input, True, (0, 0, 0))
-            code_rect = code_display.get_rect(center=(width // 2, 125))
-            screen.blit(code_display, code_rect)
+            code_display = font.render("" if input_locked else current_input, True, (0, 0, 0))
+            screen.blit(code_display, code_display.get_rect(center=(width // 2, 125)))
+
+            if error_message:
+                err_surf = error_font.render(error_message, True, (200, 50, 50))
+                screen.blit(err_surf, err_surf.get_rect(center=(width // 2, height // 2)))
 
             pygame.display.flip()
             clock.tick(fps)
 
-        pygame.quit()
-        return None
-
     except Exception as e:
-        logging.error(f"(screen.py): Code screen error: {e}")
+        logging.error(f"(screen.py): Code screen error: {e}\n")
         return None
 
 
@@ -284,7 +297,7 @@ def show_qr_screen():
             screen.fill((255, 255, 255))
 
             if 'qr' in images:
-                qr_img = pygame.transform.smoothscale(images['qr'], (360, 360))
+                qr_img = pygame.transform.smoothscale(images['qr'], (420, 420))
                 qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
                 screen.blit(qr_img, qr_rect)
             else:
