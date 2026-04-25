@@ -227,7 +227,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                     )
 
             logging.debug("(inference.py): Inference complete.\n")
-            logging.info(
+            logging.debug(
                 f"(inference.py): Frame result — "
                 f"person_detected={person_detected}, "
                 f"largest_box_area={largest_box_area}px², "
