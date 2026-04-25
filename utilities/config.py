@@ -131,6 +131,7 @@ CAMERA_CONFIG = {
 INFERENCE_CONFIG = {
     'TPU_NAME': "MYRIAD",  # literal device name in code
     'CNN_PATH': "/home/matthewthomasbeck/Projects/Vending_Machine_Robot-Hardware/model/person-detection-0200.xml",  # person detection
+    'SHOW_SCREEN': False
 }
 
 

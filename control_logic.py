@@ -206,7 +206,7 @@ def _state_machine():  # central function that runs robot in real life
 
             ##### show inference frame #####
 
-            if inference_frame is not None:
+            if config.INFERENCE_CONFIG.get('SHOW_SCREEN', False) and inference_frame is not None:
                 cv2.imshow("SSDLite detection", inference_frame)
                 cv2.waitKey(1)
 
