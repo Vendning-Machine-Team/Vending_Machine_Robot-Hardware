@@ -65,7 +65,7 @@ PERSON_DETECTION_CONFIG = {
 
 PERSON_APPROACH_CONFIG = {
     'FRAME_WIDTH': 640,         # must match CAMERA_CONFIG['WIDTH']
-    'STOP_AREA': 50000,         # stop when person's box area reaches this threshold
+    'STOP_AREA': 45000,         # stop when person's box area reaches this threshold
     'DEADBAND': 92,             # horizontal pixel deadband around frame center
     'INTENSITY': 5,             # default motor intensity during approach
     'SLOWDOWN_AREA': 35000,     # start slowing down when box area reaches this threshold
