@@ -207,7 +207,7 @@ def find_customer():
 
     # step 1 — spin 180° in place using timed rotation
     rotate_left(config.FIND_CUSTOMER_CONFIG['SPIN_INTENSITY']) # calls rotate_left() from behaviors/mecanum.py; sets all 4 wheels clockwise to spin the robot body left in place at SPIN_INTENSITY PWM
-    #time.sleep(config.FIND_CUSTOMER_CONFIG['SPIN_DURATION'])   # holds the spin for SPIN_DURATION seconds; this is the only mechanism for angle control — no IMU available; tune SPIN_DURATION in config until ~180° is achieved on real hardware
+    time.sleep(config.FIND_CUSTOMER_CONFIG['SPIN_DURATION'])   # holds the spin for SPIN_DURATION seconds; this is the only mechanism for angle control — no IMU available; tune SPIN_DURATION in config until ~180° is achieved on real hardware
     stop_all()                                                  # writes PWM duty 0 to all four GPIO motor pins via pigpio daemon — halts the spin after SPIN_DURATION seconds have elapsed
 
     # step 2 —

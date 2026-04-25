@@ -56,7 +56,8 @@ from utilities.motors import initialize_motor_controllers, stop_all, run_back_mo
 
 ##### customer tracking functions #####
 
-from behaviors.customer_finder import approach_largest_person
+from behaviors.customer_finder import approach_largest_person, force_sale, find_customer
+import behaviors.customer_finder as customer_finder
 from behaviors.proximity import check_distance_from_home, return_to_home
 
 ##### sale functions #####
@@ -166,6 +167,7 @@ PERSON_ABSENT_STREAK = 0  # consecutive frames with person_detected == False
 PERSON_STATE_MOVING = False  # whether motors are currently commanded to move
 PERSON_LAST_STATE_CHANGE_TIME = 0.0  # used to enforce minimum move time
 PERSON_LAST_DETECTED_TIME = 0.0  # tracks when a person was last positively detected
+ROBOT_IN_FORCE_SALE = False  # True once approach_largest_person() has stopped the robot close to a person and force_sale() takes over
 
 ##### state machine loop #####
 
@@ -176,6 +178,7 @@ def _state_machine():  # central function that runs robot in real life
     global SALE_IN_PROGRESS, OUT_OF_RANGE # declare as global as these will be edited by function
     global PERSON_DETECTED_STREAK, PERSON_ABSENT_STREAK
     global PERSON_STATE_MOVING, PERSON_LAST_STATE_CHANGE_TIME, PERSON_LAST_DETECTED_TIME
+    global ROBOT_IN_FORCE_SALE
     mjpeg_buffer = b''  # initialize buffer for MJPEG frames
     last_gps_check_time = 0.0 # throttle GPS check threads
 
@@ -246,11 +249,9 @@ def _state_machine():  # central function that runs robot in real life
             ##### transition from robot stop to approach customer #####
 
             # if the robot not currently moving and person has been detected for required num frames...
-            if (not PERSON_STATE_MOVING) and (
+            if (not PERSON_STATE_MOVING) and (not ROBOT_IN_FORCE_SALE) and (
                 PERSON_DETECTED_STREAK >= config.PERSON_DETECTION_CONFIG['DETECTED_FRAMES_TO_START']
             ):
-
-                #TODO Tri puts his perosn tracking code here
 
                 PERSON_STATE_MOVING = True # set person state to True
                 PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
@@ -258,7 +259,7 @@ def _state_machine():  # central function that runs robot in real life
             ##### transition from robot move to stop #####
 
             # if the robot is currently moving and person has been absent for required num frames...
-            elif PERSON_STATE_MOVING and (
+            elif PERSON_STATE_MOVING and (not ROBOT_IN_FORCE_SALE) and (
                 PERSON_ABSENT_STREAK >= config.PERSON_DETECTION_CONFIG['ABSENT_FRAMES_TO_STOP']
             ):
 
@@ -270,31 +271,41 @@ def _state_machine():  # central function that runs robot in real life
                     (now - PERSON_LAST_DETECTED_TIME) >= config.PERSON_DETECTION_CONFIG['ABSENT_HOLD_SECONDS']
                 )
 
-                ##### person moves out of frame #####
-
                 # if robot has been moving for required time and person has been absent for required time...
                 if enough_move_time and absent_hold_elapsed:
-
-                    #TODO Tri puts his robot rotation code here
 
                     PERSON_STATE_MOVING = False # set person state to False
                     PERSON_LAST_STATE_CHANGE_TIME = now # update last state change time
 
-                        #TODO code below is Tri's code; it's important to learn this code and to then build off of it later.
+            ##### force sale — runs every frame once robot has stopped close to a person #####
 
-            # continuous approach steering — runs every frame while the robot is actively
-            # moving AND a person is currently visible in the camera frame
-            # the debounce state machine above decides WHEN to start or stop moving
-            # this block decides WHERE to steer (left, right, forward, or stop) each frame
-            # approach_largest_person() uses target_cx and largest_box_area from inference
-            # to issue the correct motor command for this frame via mecanum.py
-            if PERSON_STATE_MOVING and person_detected:
+            if ROBOT_IN_FORCE_SALE:
+
+                force_sale(person_detected, target_cx, largest_box_area)
+
+                # force_sale() resets _force_sale_start_time to 0.0 when MAX_ENGAGEMENT_SECONDS expires
+                # that reset is the signal that this person timed out — spin to find the next customer
+                if customer_finder._force_sale_start_time == 0.0:
+                    logging.info("(control_logic.py): force_sale timed out — calling find_customer().\n")
+                    ROBOT_IN_FORCE_SALE = False
+                    PERSON_STATE_MOVING = False
+                    find_customer()
+
+            ##### continuous approach steering — runs every frame while moving toward a person #####
+
+            elif PERSON_STATE_MOVING and person_detected:
+
                 logging.info(
                     f"(control_logic.py): Robot is moving and person is visible — "
                     f"steering toward person "
                     f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
                 )
                 approach_largest_person(target_cx, largest_box_area)
+
+                # once approach_largest_person() stops the robot close enough, hand off to force_sale
+                if largest_box_area >= config.PERSON_APPROACH_CONFIG['STOP_AREA']:
+                    logging.info("(control_logic.py): Person close enough — entering force_sale.\n")
+                    ROBOT_IN_FORCE_SALE = True
 
 
             ########## HANDLING A SALE ##########
