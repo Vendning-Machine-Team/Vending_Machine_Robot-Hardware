@@ -68,7 +68,7 @@ PERSON_APPROACH_CONFIG = {
     'STOP_AREA': 45000,         # stop when person's box area reaches this threshold
     'DEADBAND': 92,             # horizontal pixel deadband around frame center
     'INTENSITY': 5,             # default motor intensity during approach
-    'SLOWDOWN_AREA': 35000,     # start slowing down when box area reaches this threshold
+    'SLOWDOWN_AREA': 30000,     # start slowing down when box area reaches this threshold
     'SLOW_INTENSITY': 2,        # reduced intensity while inside slowdown zone
 }
 
