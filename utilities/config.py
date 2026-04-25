@@ -241,8 +241,8 @@ LID_CONFIG = {
 
 LID_LOCK_CONFIG = {
     'LOCK_CHANNEL': 2, # maestro channel for lid lock servo (change as needed)
-    'LOCKED_POSITION': 2000, # PWM microseconds for locked position
-    'UNLOCKED_POSITION': 1000, # PWM microseconds for unlocked position
+    'LOCKED_POSITION': 1000, # PWM microseconds for locked position
+    'UNLOCKED_POSITION': 2000, # PWM microseconds for unlocked position
     'SPEED': 200, # servo speed: 5,000 μs/s max rate
     'ACCELERATION': 250 # servo acceleration: max = 250
 }
