@@ -6,6 +6,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utilities.servos import set_target
+from utilities.config import LID_CONFIG, LID_LOCK_CONFIG
 
 
 #############################################################
@@ -15,128 +16,124 @@ from utilities.servos import set_target
 
 ########## SERVO 0 (left lid hinge) TEST ###########
 
-def test_servo_0_center():
-    """Move servo 0 (left lid hinge) to center position (1500 μs / 90°)"""
-    print("\n[Servo 0] Moving to CENTER (1500 μs / 90°)")
-    set_target(channel=0, target=1500, speed=200, acceleration=250)
-    print("Servo 0 should now be at center position")
+def test_servo_0_closed():
+    """Move servo 0 (left lid hinge) to CLOSED position"""
+    pos = LID_CONFIG['CLOSED_POSITION_LEFT']
+    print(f"\n[Servo 0] Moving to CLOSED ({pos} μs)")
+    set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=pos,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
-def test_servo_0_plus_90():
-    """Move servo 0 (left lid hinge) +90° from center (2000 μs / 180°)"""
-    print("\n[Servo 0] Moving +90° from center (2000 μs / 180°)")
-    set_target(channel=0, target=2000, speed=200, acceleration=250)
-    print("Servo 0 should now be rotated +90° from center")
-
-def test_servo_0_minus_90():
-    """Move servo 0 (left lid hinge) -90° from center (1000 μs / 0°)"""
-    print("\n[Servo 0] Moving -90° from center (1000 μs / 0°)")
-    set_target(channel=0, target=1000, speed=200, acceleration=250)
-    print("Servo 0 should now be rotated -90° from center")
+def test_servo_0_open():
+    """Move servo 0 (left lid hinge) to OPEN position"""
+    pos = LID_CONFIG['OPEN_POSITION_LEFT']
+    print(f"\n[Servo 0] Moving to OPEN ({pos} μs)")
+    set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=pos,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_0_full_range():
-    """Sweep servo 0 through full 180° range"""
-    print("\n[Servo 0] Full range test: 1000 → 1500 → 2000 → 1500")
-    print("Moving to 1000 μs (0°)...")
-    set_target(channel=0, target=1000, speed=200, acceleration=250)
+    """Sweep servo 0 between closed and open"""
+    closed = LID_CONFIG['CLOSED_POSITION_LEFT']
+    opened = LID_CONFIG['OPEN_POSITION_LEFT']
+    print(f"\n[Servo 0] Full range test: CLOSED ({closed}) → OPEN ({opened}) → CLOSED ({closed})")
+
+    print(f"Moving to CLOSED ({closed} μs)...")
+    set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=closed,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 1500 μs (90°)...")
-    set_target(channel=0, target=1500, speed=200, acceleration=250)
+    print(f"Moving to OPEN ({opened} μs)...")
+    set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=opened,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 2000 μs (180°)...")
-    set_target(channel=0, target=2000, speed=200, acceleration=250)
-    time.sleep(2)
-
-    print("Returning to center (1500 μs)...")
-    set_target(channel=0, target=1500, speed=200, acceleration=250)
+    print(f"Returning to CLOSED ({closed} μs)...")
+    set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=closed,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     print("Full range test complete")
 
 
 ########## SERVO 1 (right lid hinge) TEST ###########
+# Note: right hinge is mirrored — its CLOSED/OPEN values are inverted
+# from servo 0 because it's mounted in the opposite orientation.
 
-def test_servo_1_center():
-    """Move servo 1 (right lid hinge) to center position (1500 μs / 90°)"""
-    print("\n[Servo 1] Moving to CENTER (1500 μs / 90°)")
-    set_target(channel=1, target=1500, speed=200, acceleration=250)
-    print("Servo 1 should now be at center position")
+def test_servo_1_closed():
+    """Move servo 1 (right lid hinge) to CLOSED position"""
+    pos = LID_CONFIG['CLOSED_POSITION_RIGHT']
+    print(f"\n[Servo 1] Moving to CLOSED ({pos} μs)")
+    set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=pos,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
-def test_servo_1_plus_90():
-    """Move servo 1 (right lid hinge) +90° from center (2000 μs / 180°)"""
-    print("\n[Servo 1] Moving +90° from center (2000 μs / 180°)")
-    set_target(channel=1, target=2000, speed=200, acceleration=250)
-    print("Servo 1 should now be rotated +90° from center")
-
-def test_servo_1_minus_90():
-    """Move servo 1 (right lid hinge) -90° from center (1000 μs / 0°)"""
-    print("\n[Servo 1] Moving -90° from center (1000 μs / 0°)")
-    set_target(channel=1, target=1000, speed=200, acceleration=250)
-    print("Servo 1 should now be rotated -90° from center")
+def test_servo_1_open():
+    """Move servo 1 (right lid hinge) to OPEN position"""
+    pos = LID_CONFIG['OPEN_POSITION_RIGHT']
+    print(f"\n[Servo 1] Moving to OPEN ({pos} μs)")
+    set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=pos,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_1_full_range():
-    """Sweep servo 1 through full 180° range"""
-    print("\n[Servo 1] Full range test: 1000 → 1500 → 2000 → 1500")
-    print("Moving to 1000 μs (0°)...")
-    set_target(channel=1, target=1000, speed=200, acceleration=250)
+    """Sweep servo 1 between closed and open"""
+    closed = LID_CONFIG['CLOSED_POSITION_RIGHT']
+    opened = LID_CONFIG['OPEN_POSITION_RIGHT']
+    print(f"\n[Servo 1] Full range test: CLOSED ({closed}) → OPEN ({opened}) → CLOSED ({closed})")
+
+    print(f"Moving to CLOSED ({closed} μs)...")
+    set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=closed,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 1500 μs (90°)...")
-    set_target(channel=1, target=1500, speed=200, acceleration=250)
+    print(f"Moving to OPEN ({opened} μs)...")
+    set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=opened,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 2000 μs (180°)...")
-    set_target(channel=1, target=2000, speed=200, acceleration=250)
-    time.sleep(2)
-
-    print("Returning to center (1500 μs)...")
-    set_target(channel=1, target=1500, speed=200, acceleration=250)
+    print(f"Returning to CLOSED ({closed} μs)...")
+    set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=closed,
+               speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
     print("Full range test complete")
 
 
 ########## SERVO 2 (lid lock) TEST ###########
 
-def test_servo_2_center():
-    """Move servo 2 (lid lock) to center position (1500 μs / 90°)"""
-    print("\n[Servo 2] Moving to CENTER (1500 μs / 90°)")
-    set_target(channel=2, target=1500, speed=200, acceleration=250)
-    print("Servo 2 should now be at center position")
+def test_servo_2_locked():
+    """Move servo 2 (lid lock) to LOCKED position"""
+    pos = LID_LOCK_CONFIG['LOCKED_POSITION']
+    print(f"\n[Servo 2] Moving to LOCKED ({pos} μs)")
+    set_target(channel=LID_LOCK_CONFIG['LOCK_CHANNEL'], target=pos,
+               speed=LID_LOCK_CONFIG['SPEED'], acceleration=LID_LOCK_CONFIG['ACCELERATION'])
 
-def test_servo_2_plus_90():
-    """Move servo 2 (lid lock) +90° from center (2000 μs / 180°)"""
-    print("\n[Servo 2] Moving +90° from center (2000 μs / 180°)")
-    set_target(channel=2, target=2000, speed=200, acceleration=250)
-    print("Servo 2 should now be rotated +90° from center")
-
-def test_servo_2_minus_90():
-    """Move servo 2 (lid lock) -90° from center (1000 μs / 0°)"""
-    print("\n[Servo 2] Moving -90° from center (1000 μs / 0°)")
-    set_target(channel=2, target=1000, speed=200, acceleration=250)
-    print("Servo 2 should now be rotated -90° from center")
+def test_servo_2_unlocked():
+    """Move servo 2 (lid lock) to UNLOCKED position"""
+    pos = LID_LOCK_CONFIG['UNLOCKED_POSITION']
+    print(f"\n[Servo 2] Moving to UNLOCKED ({pos} μs)")
+    set_target(channel=LID_LOCK_CONFIG['LOCK_CHANNEL'], target=pos,
+               speed=LID_LOCK_CONFIG['SPEED'], acceleration=LID_LOCK_CONFIG['ACCELERATION'])
 
 def test_servo_2_full_range():
-    """Sweep servo 2 through full 180° range"""
-    print("\n[Servo 2] Full range test: 1000 → 1500 → 2000 → 1500")
-    print("Moving to 1000 μs (0°)...")
-    set_target(channel=2, target=1000, speed=200, acceleration=250)
+    """Sweep servo 2 between locked and unlocked"""
+    locked = LID_LOCK_CONFIG['LOCKED_POSITION']
+    unlocked = LID_LOCK_CONFIG['UNLOCKED_POSITION']
+    print(f"\n[Servo 2] Full range test: LOCKED ({locked}) → UNLOCKED ({unlocked}) → LOCKED ({locked})")
+
+    print(f"Moving to LOCKED ({locked} μs)...")
+    set_target(channel=LID_LOCK_CONFIG['LOCK_CHANNEL'], target=locked,
+               speed=LID_LOCK_CONFIG['SPEED'], acceleration=LID_LOCK_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 1500 μs (90°)...")
-    set_target(channel=2, target=1500, speed=200, acceleration=250)
+    print(f"Moving to UNLOCKED ({unlocked} μs)...")
+    set_target(channel=LID_LOCK_CONFIG['LOCK_CHANNEL'], target=unlocked,
+               speed=LID_LOCK_CONFIG['SPEED'], acceleration=LID_LOCK_CONFIG['ACCELERATION'])
     time.sleep(2)
 
-    print("Moving to 2000 μs (180°)...")
-    set_target(channel=2, target=2000, speed=200, acceleration=250)
-    time.sleep(2)
-
-    print("Returning to center (1500 μs)...")
-    set_target(channel=2, target=1500, speed=200, acceleration=250)
+    print(f"Returning to LOCKED ({locked} μs)...")
+    set_target(channel=LID_LOCK_CONFIG['LOCK_CHANNEL'], target=locked,
+               speed=LID_LOCK_CONFIG['SPEED'], acceleration=LID_LOCK_CONFIG['ACCELERATION'])
     print("Full range test complete")
 
 
 ########## CUSTOM POSITION TEST ###########
 
-def test_servo_custom(channel, position): # move any servo to a custom pos
-
+def test_servo_custom(channel, position):
+    """Move any servo to a custom pos"""
     print(f"\n[Servo {channel}] Moving to custom position: {position} μs")
     set_target(channel=channel, target=position, speed=200, acceleration=250)
     print(f"Servo {channel} moved to {position} μs")
@@ -148,25 +145,26 @@ def show_menu():
     print("\n" + "="*60)
     print("SERVO CALIBRATION MENU")
     print("="*60)
-    print("\nServo 0 (Left Lid Hinge):")
-    print("  1. Center position (1500 us)")
-    print("  2. +90 from center (2000 us)")
-    print("  3. -90 from center (1000 us)")
-    print("  4. Full range sweep")
-    print("\nServo 1 (Right Lid Hinge):")
-    print("  5. Center position (1500 us)")
-    print("  6. +90 from center (2000 us)")
-    print("  7. -90 from center (1000 us)")
-    print("  8. Full range sweep")
-    print("\nServo 2 (Lid Lock) [1000=unlocked, 2000=locked]:")
-    print("  A. Center position (1500 us)")
-    print("  B. Locked position (2000 us)")
-    print("  C. Unlocked position (1000 us)")
-    print("  D. Full range sweep")
+    print(f"\nServo 0 (Left Lid Hinge) "
+          f"[CLOSED={LID_CONFIG['CLOSED_POSITION_LEFT']}, OPEN={LID_CONFIG['OPEN_POSITION_LEFT']}]:")
+    print("  1. Closed position")
+    print("  2. Open position")
+    print("  3. Full range sweep")
+    print(f"\nServo 1 (Right Lid Hinge — mirrored) "
+          f"[CLOSED={LID_CONFIG['CLOSED_POSITION_RIGHT']}, OPEN={LID_CONFIG['OPEN_POSITION_RIGHT']}]:")
+    print("  4. Closed position")
+    print("  5. Open position")
+    print("  6. Full range sweep")
+    print(f"\nServo 2 (Lid Lock) "
+          f"[LOCKED={LID_LOCK_CONFIG['LOCKED_POSITION']}, UNLOCKED={LID_LOCK_CONFIG['UNLOCKED_POSITION']}]:")
+    print("  7. Locked position")
+    print("  8. Unlocked position")
+    print("  A. Full range sweep")
     print("\nCustom:")
     print("  9. Custom position")
     print("  0. Exit")
     print("="*60)
+
 
 def main():
     print("\nServo Calibration Tool")
@@ -177,28 +175,22 @@ def main():
         choice = input("\nEnter your choice: ").strip()
 
         if choice == "1":
-            test_servo_0_center()
+            test_servo_0_closed()
         elif choice == "2":
-            test_servo_0_plus_90()
+            test_servo_0_open()
         elif choice == "3":
-            test_servo_0_minus_90()
-        elif choice == "4":
             test_servo_0_full_range()
+        elif choice == "4":
+            test_servo_1_closed()
         elif choice == "5":
-            test_servo_1_center()
+            test_servo_1_open()
         elif choice == "6":
-            test_servo_1_plus_90()
-        elif choice == "7":
-            test_servo_1_minus_90()
-        elif choice == "8":
             test_servo_1_full_range()
+        elif choice == "7":
+            test_servo_2_locked()
+        elif choice == "8":
+            test_servo_2_unlocked()
         elif choice.lower() == "a":
-            test_servo_2_center()
-        elif choice.lower() == "b":
-            test_servo_2_plus_90()
-        elif choice.lower() == "c":
-            test_servo_2_minus_90()
-        elif choice.lower() == "d":
             test_servo_2_full_range()
         elif choice == "9":
             try:
