@@ -114,6 +114,7 @@ def run_code_screen(email=None):
     All buttons are image-based from screen_assets.
     Returns the entered code or None if cancelled.
     """
+    logging.info(f"(screen.py): Displaying code entry screen for '{email}'.\n")
     try:
         screen, images, button_rects = initialize_screen()
 
@@ -207,11 +208,13 @@ def run_code_screen(email=None):
 
 def show_success_screen(message="Lid is opening!"):
     """Display success message"""
+    logging.info(f"(screen.py): Displaying success screen — '{message}'.\n")
     _show_message("SUCCESS!", message, color=(0, 150, 0), duration=3)
 
 
 def show_error_screen(message="Please try again", attempts_left=0):
     """Display error message"""
+    logging.info(f"(screen.py): Displaying error screen — '{message}' ({attempts_left} attempts left).\n")
     if attempts_left > 0:
         message = f"{message} ({attempts_left} attempts left)"
     _show_message("INCORRECT CODE", message, color=(200, 50, 50), duration=2)
