@@ -27,6 +27,9 @@ import time
 from utilities.config import LID_CONFIG, LID_LOCK_CONFIG
 from utilities.servos import set_target
 
+_lid_is_open = False
+_lid_is_locked = True
+
 
 
 
@@ -124,6 +127,8 @@ def close_lid():
 
 def lock_lid_position():
 
+    global _lid_is_locked
+
     logging.info("(lid.py): Locking lid position chud...\n")
 
     try:
@@ -134,6 +139,7 @@ def lock_lid_position():
             acceleration=LID_LOCK_CONFIG['ACCELERATION']
         )
 
+        _lid_is_locked = True
         logging.info("(lid.py): Lid locked successfully chud.\n")
 
     except Exception as e:
@@ -156,10 +162,11 @@ def unlock_lid_position():
             acceleration=LID_LOCK_CONFIG['ACCELERATION']
         )
 
+        _lid_is_locked = False
         logging.info("(lid.py): Lid unlocked successfully chud.\n")
         return True
 
     except Exception as e:
-        logging.error(f"(lid.py): did work chud: {e}\n")
+        logging.error(f"(lid.py): Failed to unlock lid chud: {e}\n")
         return False
     
