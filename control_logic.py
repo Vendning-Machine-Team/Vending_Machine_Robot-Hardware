@@ -284,13 +284,13 @@ def _state_machine():  # central function that runs robot in real life
             # this block decides WHERE to steer (left, right, forward, or stop) each frame
             # approach_largest_person() uses target_cx and largest_box_area from inference
             # to issue the correct motor command for this frame via mecanum.py
-            #if PERSON_STATE_MOVING and person_detected:
-            #    logging.info(
-            #        f"(control_logic.py): Robot is moving and person is visible — "
-            #        f"steering toward person "
-            #        f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
-            #    )
-            #    approach_largest_person(target_cx, largest_box_area)
+            if PERSON_STATE_MOVING and person_detected:
+                logging.info(
+                    f"(control_logic.py): Robot is moving and person is visible — "
+                    f"steering toward person "
+                    f"(target_cx={target_cx}px, box_area={largest_box_area}px²).\n"
+                )
+                approach_largest_person(target_cx, largest_box_area)
 
 
             ########## HANDLING A SALE ##########
