@@ -28,7 +28,7 @@ import logging # import logging for logging messages
 
 ##### get physical robot dependencies #####
 
-from openvino import Core  # import OpenVINO runtime
+from openvino.runtime import Core  # import OpenVINO runtime
 import cv2 # import OpenCV for image processing
 
 ########## CREATE DEPENDENCIES ##########
@@ -155,6 +155,11 @@ def test_with_dummy_input(compiled_model, input_layer, output_layer): # function
 
 def run_person_detection(compiled_model, input_layer, output_layer, frame, run_inference):
 
+    # default-safe outputs for all code paths (including model-not-loaded path)
+    person_detected = False
+    target_cx = 0
+    largest_box_area = 0
+
     if frame is None:
         logging.debug("(inference.py): Frame is None.\n")
         return False, 0, 0  # return no detection and zero box data — caller must unpack all three values
@@ -166,8 +171,6 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             #cv2.imshow("video (standard)", frame)
             #cv2.waitKey(1)
             return False, 0, 0  # inference is disabled — return no detection and zero box data
-
-        person_detected = False
 
         if compiled_model is not None and input_layer is not None and output_layer is not None:
 
