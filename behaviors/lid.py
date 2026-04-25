@@ -87,6 +87,7 @@ def open_lid():
             acceleration=LID_CONFIG['ACCELERATION']
         )
 
+        _lid_is_open = True
         logging.info("(lid.py): Lid opened successfully chud.\n")
         return True
 
@@ -97,6 +98,8 @@ def open_lid():
 ##### close lid #####
 
 def close_lid():
+
+    global _lid_is_open
 
     logging.info("(lid.py): Closing lid sequence chud...\n")
 
@@ -116,6 +119,7 @@ def close_lid():
             acceleration=LID_CONFIG['ACCELERATION']
         )
 
+        _lid_is_open = False
         logging.info("(lid.py): Lid closed successfully chud.\n")
         return True
 
@@ -141,6 +145,7 @@ def lock_lid_position():
 
         _lid_is_locked = True
         logging.info("(lid.py): Lid locked successfully chud.\n")
+        return True
 
     except Exception as e:
         logging.error(f"(lid.py): Failed to lock lid chud: {e}\n")

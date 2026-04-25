@@ -53,6 +53,46 @@ def test_servo_0_full_range():
     print("Full range test complete")
 
 
+########## SERVO 1 (right lid hinge) TEST ###########
+
+def test_servo_1_center():
+    """Move servo 1 (right lid hinge) to center position (1500 μs / 90°)"""
+    print("\n[Servo 1] Moving to CENTER (1500 μs / 90°)")
+    set_target(channel=1, target=1500, speed=200, acceleration=250)
+    print("Servo 1 should now be at center position")
+
+def test_servo_1_plus_90():
+    """Move servo 1 (right lid hinge) +90° from center (2000 μs / 180°)"""
+    print("\n[Servo 1] Moving +90° from center (2000 μs / 180°)")
+    set_target(channel=1, target=2000, speed=200, acceleration=250)
+    print("Servo 1 should now be rotated +90° from center")
+
+def test_servo_1_minus_90():
+    """Move servo 1 (right lid hinge) -90° from center (1000 μs / 0°)"""
+    print("\n[Servo 1] Moving -90° from center (1000 μs / 0°)")
+    set_target(channel=1, target=1000, speed=200, acceleration=250)
+    print("Servo 1 should now be rotated -90° from center")
+
+def test_servo_1_full_range():
+    """Sweep servo 1 through full 180° range"""
+    print("\n[Servo 1] Full range test: 1000 → 1500 → 2000 → 1500")
+    print("Moving to 1000 μs (0°)...")
+    set_target(channel=1, target=1000, speed=200, acceleration=250)
+    time.sleep(2)
+
+    print("Moving to 1500 μs (90°)...")
+    set_target(channel=1, target=1500, speed=200, acceleration=250)
+    time.sleep(2)
+
+    print("Moving to 2000 μs (180°)...")
+    set_target(channel=1, target=2000, speed=200, acceleration=250)
+    time.sleep(2)
+
+    print("Returning to center (1500 μs)...")
+    set_target(channel=1, target=1500, speed=200, acceleration=250)
+    print("Full range test complete")
+
+
 ########## SERVO 2 (lid lock) TEST ###########
 
 def test_servo_2_center():
@@ -113,11 +153,16 @@ def show_menu():
     print("  2. +90 from center (2000 us)")
     print("  3. -90 from center (1000 us)")
     print("  4. Full range sweep")
-    print("\nServo 2 (Lid Lock):")
+    print("\nServo 1 (Right Lid Hinge):")
     print("  5. Center position (1500 us)")
     print("  6. +90 from center (2000 us)")
     print("  7. -90 from center (1000 us)")
     print("  8. Full range sweep")
+    print("\nServo 2 (Lid Lock) [1000=unlocked, 2000=locked]:")
+    print("  A. Center position (1500 us)")
+    print("  B. Locked position (2000 us)")
+    print("  C. Unlocked position (1000 us)")
+    print("  D. Full range sweep")
     print("\nCustom:")
     print("  9. Custom position")
     print("  0. Exit")
@@ -140,12 +185,20 @@ def main():
         elif choice == "4":
             test_servo_0_full_range()
         elif choice == "5":
-            test_servo_2_center()
+            test_servo_1_center()
         elif choice == "6":
-            test_servo_2_plus_90()
+            test_servo_1_plus_90()
         elif choice == "7":
-            test_servo_2_minus_90()
+            test_servo_1_minus_90()
         elif choice == "8":
+            test_servo_1_full_range()
+        elif choice.lower() == "a":
+            test_servo_2_center()
+        elif choice.lower() == "b":
+            test_servo_2_plus_90()
+        elif choice.lower() == "c":
+            test_servo_2_minus_90()
+        elif choice.lower() == "d":
             test_servo_2_full_range()
         elif choice == "9":
             try:
