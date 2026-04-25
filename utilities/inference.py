@@ -27,8 +27,7 @@ import numpy as np # import NumPy for array manipulation
 import logging # import logging for logging messages
 
 ##### get physical robot dependencies #####
-
-from openvino import Core  # import OpenVINO runtime
+ # import OpenVINO runtime
 import cv2 # import OpenCV for image processing
 
 ########## CREATE DEPENDENCIES ##########
