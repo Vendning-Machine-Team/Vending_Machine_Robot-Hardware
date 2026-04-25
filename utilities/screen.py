@@ -284,7 +284,7 @@ def show_qr_screen():
             screen.fill((255, 255, 255))
 
             if 'qr' in images:
-                qr_img = images['qr']
+                qr_img = pygame.transform.smoothscale(images['qr'], (360, 360))
                 qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
                 screen.blit(qr_img, qr_rect)
             else:
