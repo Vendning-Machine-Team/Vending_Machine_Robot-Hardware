@@ -315,7 +315,8 @@ def _state_machine():  # central function that runs robot in real life
             ##### render QR idle screen when not in a sale #####
 
             if not SALE_IN_PROGRESS:
-                render_qr_frame()
+                pass
+                # render_qr_frame()
 
 
             ########## FIND A NEW CUSTOMER ##########
