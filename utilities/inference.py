@@ -185,6 +185,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
             # the largest box corresponds to the closest / most prominent person in view
             largest_box_area = 0  # running maximum bounding box area (px²) seen this frame
             target_cx = 0         # horizontal pixel center of the largest box found so far
+            largest_bbox = None   # (xmin, ymin, xmax, ymax) of the largest box, drawn after loop
 
             logging.debug("(inference.py): Scanning all detections for largest person box...\n")
 
@@ -210,6 +211,7 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                     if box_area > largest_box_area:
                         largest_box_area = box_area
                         target_cx = (xmin + xmax) // 2  # horizontal pixel center of this box
+                        largest_bbox = (xmin, ymin, xmax, ymax, confidence)
                         logging.debug(
                             f"(inference.py): New largest box — "
                             f"area={box_area}px², center_x={target_cx}px, "
@@ -217,17 +219,19 @@ def run_person_detection(compiled_model, input_layer, output_layer, frame, run_i
                             f"bbox=({xmin},{ymin},{xmax},{ymax}).\n"
                         )
 
-                    label = f"ID {int(detection[1])}: {confidence:.2f}"
-                    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
-                    cv2.putText(
-                        frame,
-                        label,
-                        (xmin, ymin - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 255, 0),
-                        2
-                    )
+            # draw only the largest person's box so multiple boxes don't appear on frame
+            if largest_bbox is not None:
+                xmin, ymin, xmax, ymax, confidence = largest_bbox
+                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                cv2.putText(
+                    frame,
+                    f"{confidence:.2f}",
+                    (xmin, ymin - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 255, 0),
+                    2
+                )
 
             logging.debug("(inference.py): Inference complete.\n")
             logging.debug(
