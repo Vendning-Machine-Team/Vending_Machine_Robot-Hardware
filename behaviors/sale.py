@@ -30,7 +30,7 @@ import utilities.config as config
 from behaviors.lid import open_close_cycle
 from utilities.motors import stop_all
 from utilities.internet import parse_customer_queue_command
-from utilities.screen import run_code_screen, show_success_screen
+from utilities.screen import run_code_screen, show_success_screen, close_screen
 
 
 
@@ -72,12 +72,14 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
         if entered_code:
             logging.info(f"(sale.py): Correct code entered. Lid will open and customer can grab purchase.\n")
             show_success_screen("Lid is opening!")
+            close_screen()  # close pygame window so screensaver shows during lid cycle
             open_close_cycle()
             sale_in_progress = False
 
         # step 4. wrong code / max attempts exceeded
         else:
             logging.info(f"(sale.py): Sale ended without correct code. Sale will not be completed.\n")
+            close_screen()  # close pygame window so screensaver returns
             sale_in_progress = False
 
     return sale_in_progress

@@ -110,34 +110,21 @@ def initialize_screen():
     return _screen, _images, button_rects
 
 
-########## QR CODE SCREEN ##########
+########## SCREEN TEARDOWN ##########
 
-_qr_warned_missing = False
-
-def render_qr_frame():
-    """Render one frame of the QR idle screen. Call from the main loop each tick."""
-    global _qr_warned_missing
+def close_screen():
+    """Quit pygame and reset state so the system screensaver/desktop shows again."""
+    global _screen, _images, _initialized
     try:
-        screen, images, _ = initialize_screen()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return
-
-        screen.fill((255, 255, 255))
-
-        if 'qr' in images:
-            qr_img = pygame.transform.smoothscale(images['qr'], (420, 420))
-            qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
-            screen.blit(qr_img, qr_rect)
-        elif not _qr_warned_missing:
-            logging.warning("(screen.py): qr.png not found in screen_assets.\n")
-            _qr_warned_missing = True
-
-        pygame.display.flip()
-
+        if _initialized:
+            pygame.quit()
+            logging.info("(screen.py): Pygame closed — screen returned to screensaver.\n")
     except Exception as e:
-        logging.error(f"(screen.py): QR frame render error: {e}\n")
+        logging.error(f"(screen.py): Error closing screen: {e}\n")
+    finally:
+        _screen = None
+        _images = {}
+        _initialized = False
 
 
 ########## TOUCHSCREEN CODE ENTRY ##########

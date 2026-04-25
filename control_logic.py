@@ -64,10 +64,6 @@ from behaviors.proximity import check_distance_from_home, return_to_home
 
 from behaviors.sale import handle_sale
 
-##### screen functions #####
-
-from utilities.screen import render_qr_frame
-
 #atexit.register(stop_all)
 
 ##### import GPS functions #####
@@ -322,12 +318,6 @@ def _state_machine():  # central function that runs robot in real life
                 codes = CODES_FROM_BACKEND_QUEUE.get() # get one sale payload from queue
                 logging.info(f"(control_logic.py): Codes received from backend: {codes}\n")
                 SALE_IN_PROGRESS = handle_sale(codes, SALE_IN_PROGRESS)
-
-            ##### render QR idle screen when not in a sale #####
-
-            if not SALE_IN_PROGRESS:
-                pass
-                # render_qr_frame()
 
 
             ########## FIND A NEW CUSTOMER ##########
