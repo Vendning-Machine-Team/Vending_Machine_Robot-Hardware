@@ -67,9 +67,9 @@ PERSON_APPROACH_CONFIG = {
     'FRAME_WIDTH': 640,         # must match CAMERA_CONFIG['WIDTH']
     'STOP_AREA': 45000,         # stop when person's box area reaches this threshold
     'DEADBAND': 92,             # horizontal pixel deadband around frame center
-    'INTENSITY': 5,             # default motor intensity during approach
+    'INTENSITY': 10,            # default motor intensity during approach
     'SLOWDOWN_AREA': 30000,     # start slowing down when box area reaches this threshold
-    'SLOW_INTENSITY': 2,        # reduced intensity while inside slowdown zone
+    'SLOW_INTENSITY': 10,       # reduced intensity while inside slowdown zone
 }
 
 
@@ -78,7 +78,7 @@ PERSON_APPROACH_CONFIG = {
 ##### rotation scan intensity for re-acquiring a lost person #####
 
 FORCE_SALE_CONFIG = {
-    'ROTATE_INTENSITY': 2,          # low intensity for in-place rotation scan when person exits frame (maps to ~20% PWM)
+    'ROTATE_INTENSITY': 10,         # low intensity for in-place rotation scan when person exits frame (maps to ~20% PWM)
     'MAX_ENGAGEMENT_SECONDS': 300,  # total seconds allowed with one person before robot gives up and finds someone else; change to e.g. 10 for quick testing
     'HOLD_DEADBAND': 150,           # pixel deadband for sighted re-centering inside State 1 HOLD; wider than PERSON_APPROACH_CONFIG DEADBAND (92px) intentionally — robot is stationary so more drift is tolerated before nudging; smaller = tighter centering, larger = more tolerance
 }
@@ -89,7 +89,7 @@ FORCE_SALE_CONFIG = {
 ##### spin duration and intensity for 180 degree turn when searching for a new customer #####
 
 FIND_CUSTOMER_CONFIG = {
-    'SPIN_INTENSITY': 3,    # PWM intensity for the 180° turn — needs hardware tuning on real floor surface; higher = faster spin, lower = slower; range 1-10
+    'SPIN_INTENSITY': 10,   # PWM intensity for the 180° turn — needs hardware tuning on real floor surface; higher = faster spin, lower = slower; range 1-10
     'SPIN_DURATION': 1.5,   # seconds to spin at SPIN_INTENSITY to achieve approximately 180° turn — needs hardware tuning; increase if robot undershoots, decrease if overshoots
 }
 
