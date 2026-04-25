@@ -30,7 +30,7 @@ import utilities.config as config
 from behaviors.lid import open_close_cycle
 from utilities.motors import stop_all
 from utilities.internet import parse_customer_queue_command
-from utilities.screen import run_code_screen, show_success_screen, stop_qr_screen
+from utilities.screen import run_code_screen, show_success_screen, stop_qr_screen, start_qr_screen
 
 
 
@@ -50,12 +50,8 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
 
         # step 0. set sale in progress to True and stop all movement
         sale_in_progress = True # set sale in progress to True
-        stopped_successfully = stop_all()
-
-        if not stopped_successfully: # if the movement was not stopped successfully...
-            logging.error(f"(sale.py): Failed to stop all movement. Sale will not be completed.\n")
-            sale_in_progress = False
-            return sale_in_progress
+        if not stop_all():
+            logging.warning("(sale.py): stop_all() reported failure — continuing with sale anyway.\n")
 
         # step 1. separate email and code from code string with new internet function
         email, code = parse_customer_queue_command(codes)
@@ -84,5 +80,8 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
         else:
             logging.info(f"(sale.py): Sale ended without correct code. Sale will not be completed.\n")
             sale_in_progress = False
+
+        # step 5. restart QR screen so robot returns to idle state
+        start_qr_screen()
 
     return sale_in_progress

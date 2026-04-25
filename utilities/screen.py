@@ -9,7 +9,6 @@
 
 
 
-
 ############################################################
 ############### IMPORT / CREATE DEPENDENCIES ###############
 ############################################################
@@ -42,6 +41,10 @@ height = SCREEN_CONFIG['HEIGHT']
 width = SCREEN_CONFIG['WIDTH']
 fps = SCREEN_CONFIG['FPS']
 
+_screen = None
+_images = {}
+_initialized = False
+
 _qr_stop_event = threading.Event()
 _qr_thread = None
 
@@ -66,7 +69,6 @@ BUTTON_CONFIGS = {
 
 
 
-
 ################################################
 ############### SCREEN FUNCTIONS ###############
 ################################################
@@ -75,39 +77,93 @@ BUTTON_CONFIGS = {
 ########## PYGAME INITIALIZATION ##########
 
 def initialize_screen():
-    """Initialize pygame screen and load images from screen_assets"""
+    """Initialize pygame once and return the persistent screen surface and images."""
+    global _screen, _images, _initialized
+
+    if _initialized:
+        return _screen, _images, {}
 
     pygame.init()
     pygame.font.init()
-
     pygame.mouse.set_visible(True)
 
-    screen = pygame.display.set_mode((width, height))
+    _screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Vending Machine")
 
-    # Use relative path from this file's location to find screen_assets
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
     image_folder = os.path.join(project_root, "screen_assets")
 
-    images = {}
     button_rects = {}
-    
+
     if os.path.exists(image_folder):
         for filename in os.listdir(image_folder):
             if filename.endswith(".png"):
                 name = filename[:-4]
                 img_path = os.path.join(image_folder, filename)
                 img = pygame.image.load(img_path).convert_alpha()
-                images[name] = img
-                
-                # Store rect for collision detection if it's a button or control
+                _images[name] = img
+
                 if name in BUTTON_CONFIGS or name == 'screen_interface':
                     button_rects[name] = img.get_rect(topleft=(0, 0))
     else:
         logging.warning(f"(screen.py): screen_assets folder not found at {image_folder}")
 
-    return screen, images, button_rects
+    _initialized = True
+    logging.info("(screen.py): Pygame initialized and screen assets loaded.\n")
+    return _screen, _images, button_rects
+
+
+########## QR CODE SCREEN ##########
+
+def show_qr_screen():
+    """Display QR code idle screen until stop_qr_screen() is called."""
+    logging.info("(screen.py): Displaying QR code screen.\n")
+    try:
+        screen, images, _ = initialize_screen()
+        clock = pygame.time.Clock()
+
+        while not _qr_stop_event.is_set():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+
+            screen.fill((255, 255, 255))
+
+            if 'qr' in images:
+                qr_img = pygame.transform.smoothscale(images['qr'], (420, 420))
+                qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
+                screen.blit(qr_img, qr_rect)
+            else:
+                logging.warning("(screen.py): qr.png not found in screen_assets.\n")
+
+            pygame.display.flip()
+            clock.tick(fps)
+
+        logging.info("(screen.py): QR screen loop exited.\n")
+
+    except Exception as e:
+        logging.error(f"(screen.py): QR screen error: {e}\n")
+
+
+def start_qr_screen():
+    """Start the QR code screen in a background thread."""
+    global _qr_thread
+    _qr_stop_event.clear()
+    initialize_screen()  # ensure pygame is ready before thread starts
+    _qr_thread = threading.Thread(target=show_qr_screen, daemon=True)
+    _qr_thread.start()
+    logging.info("(screen.py): QR screen thread started.\n")
+
+
+def stop_qr_screen():
+    """Signal QR screen to stop and block until the thread fully exits."""
+    global _qr_thread
+    _qr_stop_event.set()
+    if _qr_thread is not None:
+        _qr_thread.join()  # no timeout — must fully exit before next screen renders
+        _qr_thread = None
+    logging.info("(screen.py): QR screen stopped.\n")
 
 
 ########## TOUCHSCREEN CODE ENTRY ##########
@@ -120,7 +176,7 @@ def run_code_screen(email=None, code=None, max_attempts=3):
     """
     logging.info(f"(screen.py): Displaying code entry screen for '{email}'.\n")
     try:
-        screen, images, button_rects = initialize_screen()
+        screen, images, _ = initialize_screen()
 
         current_input = ""
         font = pygame.font.SysFont(None, 48)
@@ -140,7 +196,6 @@ def run_code_screen(email=None, code=None, max_attempts=3):
             # clear error overlay and reset input after 2 seconds
             if input_locked and now >= error_until:
                 if failed_attempts >= max_attempts:
-                    pygame.quit()
                     return None
                 input_locked = False
                 error_message = None
@@ -148,7 +203,6 @@ def run_code_screen(email=None, code=None, max_attempts=3):
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
                     return None
 
                 elif event.type == pygame.MOUSEBUTTONDOWN and not input_locked:
@@ -174,7 +228,6 @@ def run_code_screen(email=None, code=None, max_attempts=3):
                                                 if current_input:
                                                     if code is None or current_input == code:
                                                         logging.info(f"(screen.py): Correct code entered.\n")
-                                                        pygame.quit()
                                                         return current_input
                                                     else:
                                                         failed_attempts += 1
@@ -251,10 +304,6 @@ def _show_message(title, message, color=(0, 150, 0), duration=3):
         while time.time() - start_time < duration:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    return
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    pygame.quit()
                     return
 
             screen.fill((255, 255, 255))
@@ -263,72 +312,16 @@ def _show_message(title, message, color=(0, 150, 0), duration=3):
                 screen.blit(images['screen_interface'], (0, 0))
 
             title_text = title_font.render(title, True, color)
-            title_rect = title_text.get_rect(center=(width // 2, height // 2 - 30))
-            screen.blit(title_text, title_rect)
+            screen.blit(title_text, title_text.get_rect(center=(width // 2, height // 2 - 30)))
 
             msg_text = message_font.render(message, True, (50, 50, 50))
-            msg_rect = msg_text.get_rect(center=(width // 2, height // 2 + 30))
-            screen.blit(msg_text, msg_rect)
+            screen.blit(msg_text, msg_text.get_rect(center=(width // 2, height // 2 + 30)))
 
             pygame.display.flip()
             clock.tick(fps)
 
-        pygame.quit()
-
     except Exception as e:
-        logging.error(f"(screen.py): Message screen error: {e}")
-
-
-########## QR CODE SCREEN ##########
-
-def show_qr_screen():
-    """Display QR code idle screen until stop_qr_screen() is called."""
-    logging.info("(screen.py): Displaying QR code screen.\n")
-    try:
-        screen, images, _ = initialize_screen()
-        clock = pygame.time.Clock()
-
-        while not _qr_stop_event.is_set():
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    return
-
-            screen.fill((255, 255, 255))
-
-            if 'qr' in images:
-                qr_img = pygame.transform.smoothscale(images['qr'], (420, 420))
-                qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
-                screen.blit(qr_img, qr_rect)
-            else:
-                logging.warning("(screen.py): qr.png not found in screen_assets.\n")
-
-            pygame.display.flip()
-            clock.tick(fps)
-
-        pygame.quit()
-
-    except Exception as e:
-        logging.error(f"(screen.py): QR screen error: {e}\n")
-
-
-def start_qr_screen():
-    """Start the QR code screen in a background thread."""
-    global _qr_thread
-    _qr_stop_event.clear()
-    _qr_thread = threading.Thread(target=show_qr_screen, daemon=True)
-    _qr_thread.start()
-    logging.info("(screen.py): QR screen thread started.\n")
-
-
-def stop_qr_screen():
-    """Signal QR screen to stop and wait for it to close."""
-    global _qr_thread
-    _qr_stop_event.set()
-    if _qr_thread is not None:
-        _qr_thread.join(timeout=1.0)
-        _qr_thread = None
-    logging.info("(screen.py): QR screen stopped.\n")
+        logging.error(f"(screen.py): Message screen error: {e}\n")
 
 
 ########## ENTRY POINT ##########
