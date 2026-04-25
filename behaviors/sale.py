@@ -31,7 +31,7 @@ import utilities.config as config
 from behaviors.lid import open_close_cycle
 from utilities.motors import stop_all
 from utilities.internet import parse_customer_queue_command
-from utilities.screen import run_code_screen, show_success_screen, show_error_screen
+from utilities.screen import run_code_screen, show_success_screen, show_error_screen, stop_qr_screen
 
 
 
@@ -68,6 +68,7 @@ def handle_sale(codes, sale_in_progress=False): # function to handle a sale from
             return sale_in_progress
 
         # step 2. display sale interface and ask user to enter code
+        stop_qr_screen()
         entered_code = None
         sale_start_time = time.monotonic() # start timeout timer once sale begins
 

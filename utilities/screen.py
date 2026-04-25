@@ -23,6 +23,7 @@ import sys
 import os
 import logging
 import time
+import threading
 import pygame
 
 # Add parent directory to path so we can import from utilities
@@ -40,6 +41,9 @@ from utilities.config import SCREEN_CONFIG
 height = SCREEN_CONFIG['HEIGHT']
 width = SCREEN_CONFIG['WIDTH']
 fps = SCREEN_CONFIG['FPS']
+
+_qr_stop_event = threading.Event()
+_qr_thread = None
 
 
 ########## BUTTON RECTS AND MAPPING ##########
@@ -260,6 +264,65 @@ def _show_message(title, message, color=(0, 150, 0), duration=3):
 
     except Exception as e:
         logging.error(f"(screen.py): Message screen error: {e}")
+
+
+########## QR CODE SCREEN ##########
+
+def show_qr_screen():
+    """Display QR code idle screen until stop_qr_screen() is called."""
+    logging.info("(screen.py): Displaying QR code screen.\n")
+    try:
+        screen, images, _ = initialize_screen()
+        font = pygame.font.SysFont(None, 36)
+        clock = pygame.time.Clock()
+
+        while not _qr_stop_event.is_set():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+
+            screen.fill((255, 255, 255))
+
+            if 'screen_interface' in images:
+                screen.blit(images['screen_interface'], (0, 0))
+
+            if 'qr' in images:
+                qr_img = images['qr']
+                qr_rect = qr_img.get_rect(center=(width // 2, height // 2))
+                screen.blit(qr_img, qr_rect)
+            else:
+                logging.warning("(screen.py): qr.png not found in screen_assets.\n")
+
+            label = font.render("Scan to purchase", True, (255, 255, 255))
+            screen.blit(label, label.get_rect(center=(width // 2, height - 40)))
+
+            pygame.display.flip()
+            clock.tick(fps)
+
+        pygame.quit()
+
+    except Exception as e:
+        logging.error(f"(screen.py): QR screen error: {e}\n")
+
+
+def start_qr_screen():
+    """Start the QR code screen in a background thread."""
+    global _qr_thread
+    _qr_stop_event.clear()
+    _qr_thread = threading.Thread(target=show_qr_screen, daemon=True)
+    _qr_thread.start()
+    logging.info("(screen.py): QR screen thread started.\n")
+
+
+def stop_qr_screen():
+    """Signal QR screen to stop and wait for it to close."""
+    global _qr_thread
+    _qr_stop_event.set()
+    if _qr_thread is not None:
+        _qr_thread.join(timeout=1.0)
+        _qr_thread = None
+    logging.info("(screen.py): QR screen stopped.\n")
 
 
 ########## ENTRY POINT ##########

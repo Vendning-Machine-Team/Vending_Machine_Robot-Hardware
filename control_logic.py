@@ -382,4 +382,8 @@ restart_thread = threading.Thread(target=restart_process, daemon=True)
 restart_thread.start()
 # voltage_thread = threading.Thread(target=voltage_monitor, daemon=True)
 # voltage_thread.start()
+
+from utilities.screen import start_qr_screen
+start_qr_screen()
+
 _state_machine()  # run robot process
