@@ -304,8 +304,8 @@ def _state_machine():  # central function that runs robot in real life
 
             if CODES_FROM_BACKEND_QUEUE is not None and not CODES_FROM_BACKEND_QUEUE.empty():  # if codes were received...
 
-                logging.info(f"(control_logic.py): Codes received from backend: {CODES_FROM_BACKEND_QUEUE.get()}\n")
                 codes = CODES_FROM_BACKEND_QUEUE.get() # get one sale payload from queue
+                logging.info(f"(control_logic.py): Codes received from backend: {codes}\n")
                 SALE_IN_PROGRESS = handle_sale(codes, SALE_IN_PROGRESS)
 
 

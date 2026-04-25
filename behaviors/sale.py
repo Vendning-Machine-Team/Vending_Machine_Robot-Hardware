@@ -45,7 +45,6 @@ from utilities.screen import run_code_screen, show_success_screen, show_error_sc
 ########## SALE ALGORITHM ##########
 
 def handle_sale(codes, sale_in_progress=False): # function to handle a sale from one backend queue payload
-
     logging.info(f"(sale.py): handle_sale called. codes={'present' if codes else 'None'}\n")
 
     failed_attempts = 0 # initialize failed attempts to 0
