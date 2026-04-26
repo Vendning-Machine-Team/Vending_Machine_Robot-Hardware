@@ -9,6 +9,28 @@ from utilities.servos import set_target
 from utilities.config import LID_CONFIG, LID_LOCK_CONFIG
 
 
+def resolve_hinge_target(side, state):
+    """Match production lid target resolution for consistent testing."""
+    direction_key = f"{side}_HINGE_DIRECTION"
+    if direction_key not in LID_CONFIG:
+        explicit_key = f"{state}_POSITION_{side}"
+        if explicit_key in LID_CONFIG:
+            return LID_CONFIG[explicit_key]
+
+    min_pos = LID_CONFIG.get('MIN_POSITION', 1000)
+    max_pos = LID_CONFIG.get('MAX_POSITION', 2000)
+    if state == 'OPEN':
+        base_target = LID_CONFIG.get('BASE_OPEN_POSITION', LID_CONFIG.get('OPEN_POSITION_LEFT', max_pos))
+    else:
+        base_target = LID_CONFIG.get('BASE_CLOSED_POSITION', LID_CONFIG.get('CLOSED_POSITION_LEFT', min_pos))
+
+    direction = LID_CONFIG.get(direction_key, 1)
+    if direction >= 0:
+        return base_target
+
+    return (min_pos + max_pos) - base_target
+
+
 #############################################################
 ############### FUNDAMENTAL MOVEMENT FUNCTION ###############
 #############################################################
@@ -18,22 +40,22 @@ from utilities.config import LID_CONFIG, LID_LOCK_CONFIG
 
 def test_servo_0_closed():
     """Move servo 0 (left lid hinge) to CLOSED position"""
-    pos = LID_CONFIG['CLOSED_POSITION_LEFT']
+    pos = resolve_hinge_target('LEFT', 'CLOSED')
     print(f"\n[Servo 0] Moving to CLOSED ({pos} μs)")
     set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=pos,
                speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_0_open():
     """Move servo 0 (left lid hinge) to OPEN position"""
-    pos = LID_CONFIG['OPEN_POSITION_LEFT']
+    pos = resolve_hinge_target('LEFT', 'OPEN')
     print(f"\n[Servo 0] Moving to OPEN ({pos} μs)")
     set_target(channel=LID_CONFIG['LEFT_HINGE_CHANNEL'], target=pos,
                speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_0_full_range():
     """Sweep servo 0 between closed and open"""
-    closed = LID_CONFIG['CLOSED_POSITION_LEFT']
-    opened = LID_CONFIG['OPEN_POSITION_LEFT']
+    closed = resolve_hinge_target('LEFT', 'CLOSED')
+    opened = resolve_hinge_target('LEFT', 'OPEN')
     print(f"\n[Servo 0] Full range test: CLOSED ({closed}) → OPEN ({opened}) → CLOSED ({closed})")
 
     print(f"Moving to CLOSED ({closed} μs)...")
@@ -53,27 +75,25 @@ def test_servo_0_full_range():
 
 
 ########## SERVO 1 (right lid hinge) TEST ###########
-# Note: right hinge is mirrored — its CLOSED/OPEN values are inverted
-# from servo 0 because it's mounted in the opposite orientation.
 
 def test_servo_1_closed():
     """Move servo 1 (right lid hinge) to CLOSED position"""
-    pos = LID_CONFIG['CLOSED_POSITION_RIGHT']
+    pos = resolve_hinge_target('RIGHT', 'CLOSED')
     print(f"\n[Servo 1] Moving to CLOSED ({pos} μs)")
     set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=pos,
                speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_1_open():
     """Move servo 1 (right lid hinge) to OPEN position"""
-    pos = LID_CONFIG['OPEN_POSITION_RIGHT']
+    pos = resolve_hinge_target('RIGHT', 'OPEN')
     print(f"\n[Servo 1] Moving to OPEN ({pos} μs)")
     set_target(channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'], target=pos,
                speed=LID_CONFIG['SPEED'], acceleration=LID_CONFIG['ACCELERATION'])
 
 def test_servo_1_full_range():
     """Sweep servo 1 between closed and open"""
-    closed = LID_CONFIG['CLOSED_POSITION_RIGHT']
-    opened = LID_CONFIG['OPEN_POSITION_RIGHT']
+    closed = resolve_hinge_target('RIGHT', 'CLOSED')
+    opened = resolve_hinge_target('RIGHT', 'OPEN')
     print(f"\n[Servo 1] Full range test: CLOSED ({closed}) → OPEN ({opened}) → CLOSED ({closed})")
 
     print(f"Moving to CLOSED ({closed} μs)...")
@@ -142,16 +162,21 @@ def test_servo_custom(channel, position):
 ########## MAIN MENU ###########
 
 def show_menu():
+    left_closed = resolve_hinge_target('LEFT', 'CLOSED')
+    left_open = resolve_hinge_target('LEFT', 'OPEN')
+    right_closed = resolve_hinge_target('RIGHT', 'CLOSED')
+    right_open = resolve_hinge_target('RIGHT', 'OPEN')
+
     print("\n" + "="*60)
     print("SERVO CALIBRATION MENU")
     print("="*60)
     print(f"\nServo 0 (Left Lid Hinge) "
-          f"[CLOSED={LID_CONFIG['CLOSED_POSITION_LEFT']}, OPEN={LID_CONFIG['OPEN_POSITION_LEFT']}]:")
+          f"[CLOSED={left_closed}, OPEN={left_open}]:")
     print("  1. Closed position")
     print("  2. Open position")
     print("  3. Full range sweep")
-    print(f"\nServo 1 (Right Lid Hinge — mirrored) "
-          f"[CLOSED={LID_CONFIG['CLOSED_POSITION_RIGHT']}, OPEN={LID_CONFIG['OPEN_POSITION_RIGHT']}]:")
+    print(f"\nServo 1 (Right Lid Hinge) "
+          f"[CLOSED={right_closed}, OPEN={right_open}]:")
     print("  4. Closed position")
     print("  5. Open position")
     print("  6. Full range sweep")

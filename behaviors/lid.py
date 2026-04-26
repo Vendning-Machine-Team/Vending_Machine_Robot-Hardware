@@ -31,6 +31,31 @@ _lid_is_open = False
 _lid_is_locked = True
 
 
+def _resolve_hinge_target(side, state):
+    """
+    Resolve hinge target using direction-based mirroring when direction
+    keys are configured; otherwise fallback to legacy explicit per-side values.
+    """
+    direction_key = f"{side}_HINGE_DIRECTION"
+    if direction_key not in LID_CONFIG:
+        explicit_key = f"{state}_POSITION_{side}"
+        if explicit_key in LID_CONFIG:
+            return LID_CONFIG[explicit_key]
+
+    min_pos = LID_CONFIG.get('MIN_POSITION', 1000)
+    max_pos = LID_CONFIG.get('MAX_POSITION', 2000)
+    if state == 'OPEN':
+        base_target = LID_CONFIG.get('BASE_OPEN_POSITION', LID_CONFIG.get('OPEN_POSITION_LEFT', max_pos))
+    else:
+        base_target = LID_CONFIG.get('BASE_CLOSED_POSITION', LID_CONFIG.get('CLOSED_POSITION_LEFT', min_pos))
+
+    direction = LID_CONFIG.get(direction_key, 1)
+    if direction >= 0:
+        return base_target
+
+    return (min_pos + max_pos) - base_target
+
+
 
 
 
@@ -75,14 +100,14 @@ def open_lid():
         # step 2: move lid to open position
         set_target(
             channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
-            target=LID_CONFIG['OPEN_POSITION_LEFT'],
+            target=_resolve_hinge_target('LEFT', 'OPEN'),
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
 
         set_target(
             channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
-            target=LID_CONFIG['OPEN_POSITION_RIGHT'],
+            target=_resolve_hinge_target('RIGHT', 'OPEN'),
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
@@ -107,14 +132,14 @@ def close_lid():
         # step 1: move lid to closed position
         set_target(
             channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
-            target=LID_CONFIG['CLOSED_POSITION_LEFT'],
+            target=_resolve_hinge_target('LEFT', 'CLOSED'),
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
 
         set_target(
             channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
-            target=LID_CONFIG['CLOSED_POSITION_RIGHT'],
+            target=_resolve_hinge_target('RIGHT', 'CLOSED'),
             speed=LID_CONFIG['SPEED'],
             acceleration=LID_CONFIG['ACCELERATION']
         )
