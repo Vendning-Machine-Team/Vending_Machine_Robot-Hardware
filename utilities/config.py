@@ -231,13 +231,13 @@ LID_CONFIG = {
     'LEFT_HINGE_CHANNEL': 0, # maestro channel for lid servo (change as needed)
     'RIGHT_HINGE_CHANNEL': 1, # maestro channel for lid servo (change as needed)
     'MIN_POSITION': 1000, # allowed servo minimum in microseconds
-    'MAX_POSITION': 1500, # allowed servo maximum in microseconds
+    'MAX_POSITION': 2000, # allowed servo maximum in microseconds
     'BASE_CLOSED_POSITION': 1000, # canonical closed target before side-direction mapping
-    'BASE_OPEN_POSITION': 1500, # canonical open target before side-direction mapping
+    'BASE_OPEN_POSITION': 2000, # canonical open target before side-direction mapping
     'LEFT_HINGE_DIRECTION': 1, # +1 uses base target directly, -1 mirrors around min/max midpoint
     'RIGHT_HINGE_DIRECTION': -1, # invert right hinge direction to rotate opposite of left hinge
-    'CLOSED_POSITION_LEFT': 1000, # PWM microseconds for closed position
-    'OPEN_POSITION_LEFT': 1500, # PWM microseconds for open position
+    'CLOSED_POSITION_LEFT': 1500, # PWM microseconds for closed position
+    'OPEN_POSITION_LEFT': 2000, # PWM microseconds for open position
     'CLOSED_POSITION_RIGHT': 1000, # PWM microseconds for closed position
     'OPEN_POSITION_RIGHT': 1500, # PWM microseconds for open position
     'SPEED': 16383, # servo speed: 5,000 μs/s max rate (0-16383, 0 = unlimited)
