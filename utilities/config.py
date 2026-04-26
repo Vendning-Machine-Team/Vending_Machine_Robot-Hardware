@@ -241,7 +241,8 @@ LID_CONFIG = {
     'CLOSED_POSITION_RIGHT': 1000, # PWM microseconds for closed position
     'OPEN_POSITION_RIGHT': 1500, # PWM microseconds for open position
     'SPEED': 16383, # servo speed: 5,000 μs/s max rate (0-16383, 0 = unlimited)
-    'ACCELERATION': 255 # servo acceleration: max = 250 (0-255, 0 = unlimited)
+    'ACCELERATION': 255, # servo acceleration: max = 250 (0-255, 0 = unlimited)
+    'MOVE_TIME_SECONDS': 1.2 # target time for both hinges to complete motion (used to speed-match arrival)
 }
 
 ##### lid lock servo configuration #####
