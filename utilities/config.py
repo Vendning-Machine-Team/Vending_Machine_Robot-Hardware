@@ -232,7 +232,7 @@ LID_CONFIG = {
     'RIGHT_HINGE_CHANNEL': 1, # maestro channel for lid servo (change as needed)
     'CLOSED_POSITION_LEFT': 1000, # PWM microseconds for closed position
     'OPEN_POSITION_LEFT': 2000, # PWM microseconds for open position
-    'CLOSED_POSITION_RIGHT': 3000, # PWM microseconds for closed position
+    'CLOSED_POSITION_RIGHT': 1000, # PWM microseconds for closed position
     'OPEN_POSITION_RIGHT': 2000, # PWM microseconds for open position
     'SPEED': 16383, # servo speed: 5,000 μs/s max rate (0-16383, 0 = unlimited)
     'ACCELERATION': 255 # servo acceleration: max = 250 (0-255, 0 = unlimited)
