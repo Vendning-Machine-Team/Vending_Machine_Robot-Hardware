@@ -29,6 +29,8 @@ from utilities.servos import set_target
 
 _lid_is_open = False
 _lid_is_locked = True
+_left_hinge_target_us = None
+_right_hinge_target_us = None
 
 
 def _resolve_hinge_target(side, state):
@@ -54,6 +56,54 @@ def _resolve_hinge_target(side, state):
         return base_target
 
     return (min_pos + max_pos) - base_target
+
+
+def _servo_speed_for_travel(delta_us, move_time_s):
+    """
+    Compute Maestro speed command so a servo roughly completes its
+    requested microsecond travel within the desired move time.
+    Maestro speed scale: 16383 ~= 5000 us/s.
+    """
+    if move_time_s <= 0:
+        return 16383
+    us_per_second = abs(delta_us) / move_time_s
+    speed = int(round((us_per_second / 5000.0) * 16383))
+    return max(1, min(16383, speed))
+
+
+def _move_hinges_sync(state):
+    """Command both lid hinges to arrive at target at approximately same time."""
+    global _left_hinge_target_us, _right_hinge_target_us
+
+    left_target = _resolve_hinge_target('LEFT', state)
+    right_target = _resolve_hinge_target('RIGHT', state)
+
+    if _left_hinge_target_us is None:
+        _left_hinge_target_us = _resolve_hinge_target('LEFT', 'CLOSED')
+    if _right_hinge_target_us is None:
+        _right_hinge_target_us = _resolve_hinge_target('RIGHT', 'CLOSED')
+
+    move_time = LID_CONFIG.get('MOVE_TIME_SECONDS', 1.2)
+    left_speed = _servo_speed_for_travel(left_target - _left_hinge_target_us, move_time)
+    right_speed = _servo_speed_for_travel(right_target - _right_hinge_target_us, move_time)
+    acceleration = LID_CONFIG.get('ACCELERATION', 255)
+
+    # Send commands back-to-back so Maestro executes both almost simultaneously.
+    set_target(
+        channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
+        target=left_target,
+        speed=left_speed,
+        acceleration=acceleration
+    )
+    set_target(
+        channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
+        target=right_target,
+        speed=right_speed,
+        acceleration=acceleration
+    )
+
+    _left_hinge_target_us = left_target
+    _right_hinge_target_us = right_target
 
 
 
@@ -97,20 +147,8 @@ def open_lid():
                 return False
             time.sleep(0.3)  # brief pause after unlocking
 
-        # step 2: move lid to open position
-        set_target(
-            channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
-            target=_resolve_hinge_target('LEFT', 'OPEN'),
-            speed=LID_CONFIG['SPEED'],
-            acceleration=LID_CONFIG['ACCELERATION']
-        )
-
-        set_target(
-            channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
-            target=_resolve_hinge_target('RIGHT', 'OPEN'),
-            speed=LID_CONFIG['SPEED'],
-            acceleration=LID_CONFIG['ACCELERATION']
-        )
+        # step 2: move both hinges with travel-matched speeds for synchronized arrival
+        _move_hinges_sync('OPEN')
 
         _lid_is_open = True
         logging.info("(lid.py): Lid opened successfully chud.\n")
@@ -129,20 +167,8 @@ def close_lid():
     logging.info("(lid.py): Closing lid sequence chud...\n")
 
     try:
-        # step 1: move lid to closed position
-        set_target(
-            channel=LID_CONFIG['LEFT_HINGE_CHANNEL'],
-            target=_resolve_hinge_target('LEFT', 'CLOSED'),
-            speed=LID_CONFIG['SPEED'],
-            acceleration=LID_CONFIG['ACCELERATION']
-        )
-
-        set_target(
-            channel=LID_CONFIG['RIGHT_HINGE_CHANNEL'],
-            target=_resolve_hinge_target('RIGHT', 'CLOSED'),
-            speed=LID_CONFIG['SPEED'],
-            acceleration=LID_CONFIG['ACCELERATION']
-        )
+        # step 1: move both hinges with travel-matched speeds for synchronized arrival
+        _move_hinges_sync('CLOSED')
 
         _lid_is_open = False
         logging.info("(lid.py): Lid closed successfully chud.\n")
