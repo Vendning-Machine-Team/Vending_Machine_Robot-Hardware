@@ -1,4 +1,4 @@
-![Robot In Motion]()
+![Robot In Motion](images/wheels_moving.gif)
 
 # [Vending Machine Robot](https://github.com/orgs/Vendning-Machine-Team/repositories) - AI / Robotic Behavior Team
 ### By Matthew Beck, Samuel Saylor, Cayden Hutcheson, and Tri Nguyen
@@ -53,6 +53,21 @@
 ## Overview
 The hardware section of the project focused on transforming a collection of individual electrical components into a fully functional, interactive robot. This involved carefully integrating motors, sensors, microcontrollers, and power systems so that each part could communicate and operate in synchronization. Significant collaboration with the [engineering team](https://github.com/Vendning-Machine-Team/Vending_Machine_Robot-Parts) was required for adequate wiring, power distribution, and physical assembly to ensure reliability during operation. The team also had to troubleshoot issues such as signal interference, inconsistent motor performance, and battery limitations, refining the system until all components worked cohesively.
 
+<p align="center">
+  <img src="images/robot_hardware.jpg" width="49%" alt="Robot hardware" />
+  <img src="images/wheels_moving.gif" width="49%" alt="Wheels moving" />
+</p>
+
 In addition to internal functionality, the robot was designed to interact seamlessly with an [external website](https://github.com/Vendning-Machine-Team/Vending_Machine_Website-Frontend) that manages user payments and requests. This required establishing a communication pipeline between the robot’s onboard computing system and the [web backend](https://github.com/Vendning-Machine-Team/Vending_Machine_Website-Backend), allowing the robot to respond dynamically to user inputs. For example, once a payment is processed through the website, a signal is transmitted to the robot, prompting it to execute a specific behavior or task. Ensuring low latency and consistent connectivity was crucial, as any delay or failure in communication could disrupt the user experience.
 
+<p align="center">
+  <img src="images/one_time_code.png" width="49%" alt="Website code" />
+  <img src="images/code_sequence.gif" width="49%" alt="Entering code" />
+</p>
+
 Finally, the robot’s mobility and physical presence were key to achieving the project’s goal of attracting attention. The hardware was configured to allow smooth navigation through its environment, whether through programmed paths or remote control. Design considerations such as movement speed, turning precision, and obstacle avoidance played an important role in making the robot both engaging and safe to operate. Altogether, the hardware system not only supports the robot’s core functionality but also enhances its ability to interact with users and operate effectively as part of a larger integrated system.
+
+<p align="center">
+  <img src="images/cardboard_robot-1.jpg" width="49%" alt="Cardboard robot isometric view" />
+  <img src="images/finished_robot.jpg" width="49%" alt="Finished robot isometric view" />
+</p>
