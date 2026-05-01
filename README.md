@@ -1,6 +1,6 @@
 ![Robot In Motion](images/wheels_moving.gif)
 
-# [Vending Machine Robot](https://github.com/orgs/Vendning-Machine-Team/repositories) - AI / Robotic Behavior Team
+# [Vending Machine Robot](https://github.com/orgs/Vendning-Machine-Team) - AI / Robotic Behavior Team
 ### By Matthew Beck, Samuel Saylor, Cayden Hutcheson, and Tri Nguyen
 
 **Please consider:** if you like it, **star it!**
